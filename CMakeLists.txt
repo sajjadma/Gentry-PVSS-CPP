@@ -31,7 +31,7 @@ find_package(sodium)
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 # Source files are found under the src directory
-file(GLOB SOURCES src/*/*.cpp src/libmerlin/merlin.c)
+file(GLOB SOURCES src/*/*.cpp src/*/*/*.cpp src/*/*/*/*.cpp src/libmerlin/merlin.c)
 add_library(lwe-pvss STATIC ${SOURCES})
 target_include_directories(lwe-pvss PUBLIC
         ${NTL_INCLUDE_PATHS}
