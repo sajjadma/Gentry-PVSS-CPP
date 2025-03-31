@@ -23,152 +23,195 @@
  **/
 
 #include <pvss_framework.hpp>
+#include <NTL/RR.h>
+#include <NTL/ZZ_pX.h>
 
 using namespace std;
 
 namespace MyFramework {
-    template<typename R>
-    Params PVSS<R>::setup(int securityParameter, int numberOfParties, int threshold) {
-        auto params = Params();
+    void PVSS::setup(Params &params, int securityParameter, int numberOfParties, int threshold) {
         params.numberOfParties = numberOfParties;
         params.threshold = threshold;
 
-        params.prime = numberOfParties + 1; // TODO: select prime
+        NextPrime(params.prime, NTL::ZZ(numberOfParties + securityParameter));
 
-        params.encryptionParams = this->encryptionSystem->setup(securityParameter);
+        NTL::ZZ p3 = power(params.prime, 3);
 
-        int inputSize = numberOfParties * (params.encryptionParams.randomSize + 1) + threshold + 1;
-        int outputSize = numberOfParties * (params.encryptionParams.cipherTextSize + 1);
-        params.vcParams = this->vectorCommitmentSystem->setup(securityParameter, inputSize, outputSize,
-                                                              params.encryptionParams.randomSize,
-                                                              params.encryptionParams.randomBound);
+        this->encryptionSystem->setup(params.encryptionParams, securityParameter, p3);
 
-        return params;
+        this->vectorCommitmentSystem->setup(params.vcParams, securityParameter,
+                                            numberOfParties * params.encryptionParams.plainSize + threshold + 1,
+                                            numberOfParties * params.encryptionParams.randomSize,
+                                            numberOfParties * (params.encryptionParams.cipherSize + 1),
+                                            p3,
+                                            params.encryptionParams.randomBound,
+                                            params.encryptionParams.coefficientBound > params.prime
+                                                ? params.encryptionParams.coefficientBound
+                                                : params.prime);
     }
 
-    template<typename R>
-    Encryption::KeyPair PVSS<R>::generateKey(const Params &params, int index) {
-        return this->encryptionSystem->generateKey(params.encryptionParams);
+    void PVSS::generateKey(Encryption::KeyPair &key, const Params &params) {
+        this->encryptionSystem->generateKey(key, params.encryptionParams);
     }
 
-    template<typename R>
-    bool PVSS<R>::verifyKey(const Params &params, int index, const Encryption::PublicKey &publicKey,
-                            const Encryption::KeyProof &proof) {
+    bool PVSS::verifyKey(const Params &params, const Encryption::PublicKey &publicKey,
+                         const Encryption::KeyProof &proof) {
         return this->encryptionSystem->verifyKey(params.encryptionParams, publicKey, proof);
     }
 
-    template<typename R>
-    DistributionProof<R> PVSS<R>::distribute(const Params &params,
-                                             const vector<Encryption::PublicKey> &publicKeys, const R &secret) {
-        vector<R> polynomial(params.threshold + 1);
-        polynomial[0] = secret;
+    void PVSS::distribute(DistributionProof &proof, const Params &params,
+                          const vector<Encryption::PublicKey> &publicKeys, const NTL::ZZ &secret) {
+        NTL::vec_ZZ firstInput, secondInput;
+        firstInput.SetLength(params.vcParams.firstInputSize);
+        secondInput.SetLength(params.vcParams.secondInputSize);
+        NTL::mat_ZZ M1, M2;
+        M1.SetDims(params.vcParams.outputSize, params.vcParams.firstInputSize);
+        M2.SetDims(params.vcParams.outputSize, params.vcParams.secondInputSize);
+        proof.encryptedShares.clear();
+
+        // Polynomial part starts
+        firstInput[0] = secret;
         for (int i = 1; i <= params.threshold; i++) {
-            polynomial[i] = params.prime; // TODO: random
+            RandomBnd(firstInput[i], params.prime);
         }
+        // Polynomial part ends
 
-        vector<R> x(polynomial);
-        vector<vector<R> > M;
-        vector<vector<R> > encryptedShares(params.numberOfParties);
+        int outputIndex = 0;
         for (int i = 0; i < params.numberOfParties; i++) {
-            vector<R> b(params.threshold + 1);
-            b[0] = 1;
-            R share = polynomial[0];
+            M1.put(outputIndex, 0, 1);
+            NTL::ZZ share = firstInput[0];
             for (int j = 1; j < params.threshold + 1; j++) {
-                b[j] = (i * b[j - 1]) % params.prime;
-                share += polynomial[j] * b[j];
+                M1.put(outputIndex, j, ((i + 1) * M1(outputIndex, j - 1)) % params.prime);
+                share = share + firstInput[j] * M1(outputIndex, j);
             }
 
-            x.emplace_back(share);
-            M.emplace_back(vector<R>(params.vcParams.inputSize));
-            copy(b.begin(), b.end(), M.back().begin());
-            M.back()[x.size() - 1] = -1;
+            NTL::vec_ZZ encodedShare;
+            encodedShare.SetLength(params.encryptionParams.plainSize);
+            for (int j = 0; j < params.encryptionParams.plainSize; j++) {
+                int index = params.threshold + 1 + (i * params.encryptionParams.plainSize) + j;
+                encodedShare[j] = share % params.encryptionParams.plainBound;
+                firstInput[index] = encodedShare[j];
+                M1.put(outputIndex, index,
+                       j == 0 ? 1 : params.encryptionParams.plainBound * M1(outputIndex, index - 1));
+                share = share / params.encryptionParams.plainBound;
+            }
 
-            vector<R> r(params.encryptionParams.randomSize);
+            NTL::vec_ZZ r;
+            r.SetLength(params.encryptionParams.randomSize);
             for (int j = 0; j < params.encryptionParams.randomSize; j++) {
-                r[j] = params.encryptionParams.randomBound; // TODO: random
+                int index = (i * params.encryptionParams.randomSize) + j;
+                RandomBnd(r[j], params.encryptionParams.randomBound);
+                secondInput[index] = r[j];
             }
 
-            vector<vector<R> > encryptionFunction = this->encryptionSystem->generateEncryptionFunctionFromInput(
-                params.encryptionParams, publicKeys[i], share, r);
-            vector<R> a(1);
-            a[0] = share;
-            a.insert(a.end(), r.begin(), r.end());
-            encryptedShares[i] = encryptionFunction * a;
+            NTL::mat_ZZ f1, f2;
+            this->encryptionSystem->generateEncryptionFunctionFromInput(f1, f2, params.encryptionParams, publicKeys[i],
+                                                                        encodedShare, r);
 
-            x.insert(x.end(), r.begin(), r.end());
-            for (int j = 0; j < params.encryptionParams.cipherTextSize; j++) {
-                M.emplace_back(vector<R>(params.vcParams.inputSize));
-                copy(encryptionFunction[j].begin(), encryptionFunction[j].end(),
-                     M.back().begin() + x.size() - a.size());
+            proof.encryptedShares.push_back(f1 * encodedShare + f2 * r);
+
+            for (int j = 0; j < params.encryptionParams.cipherSize; j++) {
+                outputIndex++;
+                for (int k = 0; k < params.encryptionParams.plainSize; k++) {
+                    int index = params.threshold + 1 + (i * params.encryptionParams.plainSize) + k;
+                    M1.put(outputIndex, index, f1(j, k));
+                }
+
+                for (int k = 0; k < params.encryptionParams.randomSize; k++) {
+                    int index = (i * params.encryptionParams.randomSize) + k;
+                    M2.put(outputIndex, index, f2(j, k));
+                }
             }
         }
 
-        pair<VC::Commitment, VC::Auxiliary> commitments = this->vectorCommitmentSystem->commit(
-            params.vcParams, x);
-        VC::OpeningProof<R> openingProof = this->vectorCommitmentSystem->open(params.vcParams, commitments.second, M);
-
-        DistributionProof<R> proof = DistributionProof<R>();
-        proof.commitment = commitments.first;
-        proof.proof = openingProof;
-        proof.encryptedShares = encryptedShares;
-
-        return proof;
+        VC::Auxiliary auxiliary;
+        this->vectorCommitmentSystem->commit(proof.commitment, auxiliary, params.vcParams, firstInput, secondInput);
+        this->vectorCommitmentSystem->open(proof.proof, params.vcParams, auxiliary, M1, M2);
     }
 
-    template<typename R>
-    bool PVSS<R>::verifyDistribution(const Params &params, const vector<Encryption::PublicKey> &publicKeys,
-                                     const DistributionProof<R> &proof) {
-        vector<vector<R> > M;
-        int index = params.threshold + 1;
+    bool PVSS::verifyDistribution(const Params &params, const vector<Encryption::PublicKey> &publicKeys,
+                                  const DistributionProof &proof) {
+        NTL::mat_ZZ M1, M2;
+        M1.SetDims(params.vcParams.outputSize, params.vcParams.firstInputSize);
+        M2.SetDims(params.vcParams.outputSize, params.vcParams.secondInputSize);
+
+        int outputIndex = 0;
         for (int i = 0; i < params.numberOfParties; i++) {
-            if (proof.proof.output[M.size()] != 0) {
-                return false;
-            }
-
-            vector<R> b(params.threshold + 1);
-            b[0] = 1;
+            M1.put(outputIndex, 0, 1);
             for (int j = 1; j < params.threshold + 1; j++) {
-                b[j] = (i * b[j - 1]) % params.prime;
-            }
-
-            ++index;
-            M.emplace_back(vector<R>(params.vcParams.inputSize));
-            copy(b.begin(), b.end(), M.back().begin());
-            M.back()[index - 1] = -1;
-
-            vector<vector<R> > encryptionFunction = this->encryptionSystem->generateEncryptionFunctionFromOutput(
-                params.encryptionParams, publicKeys[i], proof.encryptedShares[i]);
-
-            index += params.encryptionParams.randomSize;
-            for (int j = 0; j < params.encryptionParams.cipherTextSize; j++) {
-                if (proof.proof.output[M.size()] != proof.encryptedShares[i][j]) {
+                if (proof.proof.output[outputIndex] != 0) {
                     return false;
                 }
 
-                M.emplace_back(vector<R>(params.vcParams.inputSize));
-                copy(encryptionFunction[j].begin(), encryptionFunction[j].end(),
-                     M.back().begin() + index - params.encryptionParams.randomSize - 1);
+                M1.put(outputIndex, j, ((i + 1) * M1(outputIndex, j - 1)) % params.prime);
+            }
+
+            for (int j = 0; j < params.encryptionParams.plainSize; j++) {
+                int index = params.threshold + 1 + (i * params.encryptionParams.plainSize) + j;
+                M1.put(outputIndex, index,
+                       j == 0 ? 1 : params.encryptionParams.plainBound * M1(outputIndex, index - 1));
+            }
+
+            NTL::mat_ZZ f1, f2;
+            this->encryptionSystem->generateEncryptionFunctionFromOutput(f1, f2, params.encryptionParams, publicKeys[i],
+                                                                         proof.encryptedShares[i]);
+
+            for (int j = 0; j < params.encryptionParams.cipherSize; j++) {
+                outputIndex++;
+                if (proof.proof.output[outputIndex] != proof.encryptedShares[i][j]) {
+                    return false;
+                }
+
+                for (int k = 0; k < params.encryptionParams.plainSize; k++) {
+                    int index = params.threshold + 1 + (i * params.encryptionParams.plainSize) + k;
+                    M1.put(outputIndex, index, f1(j, k));
+                }
+
+                for (int k = 0; k < params.encryptionParams.randomSize; k++) {
+                    int index = (i * params.encryptionParams.randomSize) + k;
+                    M2.put(outputIndex, index, f2(j, k));
+                }
             }
         }
 
-        return this->vectorCommitmentSystem->verify(params.vcParams, M, proof.commitment, proof.proof);
+        return this->vectorCommitmentSystem->verify(params.vcParams, M1, M2, proof.commitment, proof.proof);
     }
 
-    template<typename R>
-    Encryption::DecryptionProof<R> PVSS<R>::decryptShare(const Params &params, int index,
-                                                         const Encryption::PrivateKey &privateKey,
-                                                         const vector<R> &encryptedShare) {
-        return this->encryptionSystem->decrypt(params.encryptionParams, privateKey, encryptedShare);
+    void PVSS::decryptShare(DecryptionProof &proof, const Params &params,
+                            const Encryption::PrivateKey &privateKey, const NTL::vec_ZZ &encryptedShare) {
+        this->encryptionSystem->decrypt(proof.proof, params.encryptionParams, privateKey, encryptedShare);
+        proof.decryptedShare = 0;
+        NTL::ZZ pow = NTL::to_ZZ(1);
+        for (int i = 0; i < params.encryptionParams.plainSize; i++) {
+            proof.decryptedShare += proof.proof.decryptedValues[i] * pow;
+            pow *= params.encryptionParams.plainBound;
+        }
     }
 
-    template<typename R>
-    bool PVSS<R>::verifyDecryption(const Params &params, int index, const Encryption::PublicKey &publicKey,
-                                   const vector<R> &encryptedShare, const Encryption::DecryptionProof<R> &proof) {
-        return this->encryptionSystem->verifyDecryption(params.encryptionParams, publicKey, encryptedShare, proof);
+    bool PVSS::verifyDecryption(const Params &params, const Encryption::PublicKey &publicKey,
+                                const NTL::vec_ZZ &encryptedShare, const DecryptionProof &proof) {
+        NTL::ZZ share = NTL::ZZ::zero();
+        NTL::ZZ pow = NTL::to_ZZ(1);
+        for (int i = 0; i < params.encryptionParams.plainSize; i++) {
+            share += proof.proof.decryptedValues[i] * pow;
+            pow *= params.encryptionParams.plainBound;
+        }
+        return share == proof.decryptedShare && this->encryptionSystem->verifyDecryption(
+                   params.encryptionParams, publicKey, encryptedShare, proof.proof);
     }
 
-    template<typename R>
-    R PVSS<R>::reconstruct(const Params &params, const vector<vector<R> > &decryptedShares) {
-        return params.prime; // TODO: Lagrange
+    void PVSS::reconstruct(NTL::ZZ &reconstruction, const Params &params, const vector<NTL::ZZ> &decryptedShares) {
+        // NOLINT(*-convert-member-functions-to-static)
+        NTL::ZZ_pPush push(params.prime);
+        NTL::vec_ZZ_p a, b;
+        a.SetLength(params.numberOfParties);
+        b.SetLength(params.numberOfParties);
+        for (int i = 0; i < params.numberOfParties; i++) {
+            a[i] = NTL::to_ZZ_p(i + 1);
+            b[i] = NTL::to_ZZ_p(decryptedShares[i]);
+        }
+
+        NTL::ZZ_pX f = NTL::interpolate(a, b);
+        reconstruction = NTL::rep(NTL::eval(f, NTL::ZZ_p::zero()));
     }
 }

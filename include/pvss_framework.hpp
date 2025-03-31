@@ -1,3 +1,4 @@
+// ReSharper disable CppDoxygenUndocumentedParameter
 #ifndef PVSS_FRAMEWORK_HPP
 #define PVSS_FRAMEWORK_HPP
 /* pvss_framework.hpp - a general PVSS framework
@@ -25,15 +26,18 @@
  **/
 
 #include <vector>
-#include <utility>
 #include <memory>
+#include <NTL/mat_ZZ.h>
 
 namespace MyFramework {
     namespace Encryption {
         struct Params {
+            int plainSize;
+            NTL::ZZ plainBound;
             int randomSize;
-            int cipherTextSize;
-            int randomBound;
+            NTL::ZZ randomBound;
+            NTL::ZZ coefficientBound;
+            int cipherSize;
         };
 
         struct PrivateKey {
@@ -51,44 +55,52 @@ namespace MyFramework {
             KeyProof proof;
         };
 
-        template<typename R>
         struct DecryptionProof {
-            std::vector<R> decryptedText;
+            NTL::vec_ZZ decryptedValues;
         };
 
-        template<typename R>
-        class EncryptionSystem {
-        public:
+        struct EncryptionSystem {
             virtual ~EncryptionSystem() = default;
 
-            virtual Params setup(int securityParameter) = 0;
+            virtual void setup(Params &params, int securityParameter, NTL::ZZ plainBound) = 0;
 
-            virtual KeyPair generateKey(const Params &params) = 0;
+            virtual void generateKey(KeyPair &key, const Params &params) = 0;
 
-            virtual bool verifyKey(const Params &params, const PublicKey &publicKey,
-                                   const KeyProof &proof) = 0;
+            virtual bool verifyKey(const Params &params, const PublicKey &publicKey, const KeyProof &proof) = 0;
 
-            virtual std::vector<std::vector<R> > generateEncryptionFunctionFromInput(
-                const Params &params, const PublicKey &publicKey, const R &plainText,
-                const std::vector<R> &randomValues) = 0;
+            /**
+             * @return @param f1 Function coefficients for plain value
+             * @return @param f2 Function coefficients for random value
+             *
+             * @details encryptedValues = f1 * plainValues + f2 * randomValues
+             */
+            virtual void generateEncryptionFunctionFromInput(NTL::mat_ZZ &f1, NTL::mat_ZZ &f2,
+                                                             const Params &params,
+                                                             const PublicKey &publicKey,
+                                                             const NTL::vec_ZZ &plainValues,
+                                                             const NTL::vec_ZZ &randomValues) = 0;
 
-            virtual std::vector<std::vector<R> > generateEncryptionFunctionFromOutput(
-                const Params &params, const PublicKey &publicKey, const std::vector<R> &cipherText) = 0;
+            virtual void generateEncryptionFunctionFromOutput(NTL::mat_ZZ &f1, NTL::mat_ZZ &f2,
+                                                              const Params &params,
+                                                              const PublicKey &publicKey,
+                                                              const NTL::vec_ZZ &cipherValues) = 0;
 
-            virtual DecryptionProof<R> decrypt(const Params &params, const PrivateKey &privateKey,
-                                               const std::vector<R> &cipherText) = 0;
+            virtual void decrypt(DecryptionProof &proof, const Params &params, const PrivateKey &privateKey,
+                                 const NTL::vec_ZZ &cipherValues) = 0;
 
             virtual bool verifyDecryption(const Params &params, const PublicKey &publicKey,
-                                          const std::vector<R> &cipherText, const DecryptionProof<R> &proof) = 0;
+                                          const NTL::vec_ZZ &cipherValues, const DecryptionProof &proof) = 0;
         };
     }
 
     namespace VC {
         struct Params {
-            int inputSize;
+            int firstInputSize;
+            int secondInputSize;
             int outputSize;
-            int boundedInputSize;
-            int bound;
+            NTL::ZZ firstInputBound;
+            NTL::ZZ secondInputBound;
+            NTL::ZZ coefficientBound;
         };
 
         struct Commitment {
@@ -97,78 +109,83 @@ namespace MyFramework {
         struct Auxiliary {
         };
 
-        template<typename R>
         struct OpeningProof {
-            std::vector<R> output;
+            NTL::vec_ZZ output;
         };
 
-        template<typename R>
-        class VectorCommitmentSystem {
-        public:
+        struct VectorCommitmentSystem {
             virtual ~VectorCommitmentSystem() = default;
 
-            virtual Params setup(int securityParameter, int inputSize, int outputSize, int boundedInputSize,
-                                 int bound) = 0;
+            virtual void setup(Params &params, int securityParameter, int firstInputSize, int secondInputSize,
+                               int outputSize, NTL::ZZ firstInputBound, NTL::ZZ secondInputBound,
+                               NTL::ZZ coefficientBound) = 0;
 
-            virtual std::pair<Commitment, Auxiliary> commit(const Params &params, const std::vector<R> &input)
-            = 0;
+            virtual void commit(Commitment &commitment, Auxiliary &auxiliary, const Params &params,
+                                const NTL::vec_ZZ &firstInput, const NTL::vec_ZZ &secondInput) = 0;
 
-            virtual OpeningProof<R> open(const Params &params, Auxiliary &aux,
-                                         const std::vector<std::vector<R> > &openingFunction) = 0;
+            /**
+             * @param openingFunction1 Function coefficients for first input
+             * @param openingFunction2 Function coefficients for second input
+             *
+             * @details output = openingFunction1 * firstInput + openingFunction2 * secondInput
+             */
+            virtual void open(OpeningProof &proof, const Params &params, Auxiliary &auxiliary,
+                              const NTL::mat_ZZ &openingFunction1, const NTL::mat_ZZ &openingFunction2) = 0;
 
-            virtual bool verify(const Params &params, const std::vector<std::vector<R> > &openingFunction,
-                                const Commitment &commitment, const OpeningProof<R> &proof) = 0;
+            virtual bool verify(const Params &params, const NTL::mat_ZZ &openingFunction1,
+                                const NTL::mat_ZZ &openingFunction2, const Commitment &commitment,
+                                const OpeningProof &proof) = 0;
         };
     }
 
     struct Params {
         int numberOfParties;
         int threshold;
-        int prime;
+        NTL::ZZ prime;
         Encryption::Params encryptionParams;
         VC::Params vcParams;
     };
 
-    template<typename R>
     struct DistributionProof {
-        std::vector<std::vector<R> > encryptedShares;
+        std::vector<NTL::vec_ZZ> encryptedShares;
         VC::Commitment commitment;
-        VC::OpeningProof<R> proof;
+        VC::OpeningProof proof;
     };
 
-    template<typename R>
+    struct DecryptionProof {
+        Encryption::DecryptionProof proof;
+        NTL::ZZ decryptedShare;
+    };
+
     class PVSS {
-        std::unique_ptr<Encryption::EncryptionSystem<R> > encryptionSystem;
-        std::unique_ptr<VC::VectorCommitmentSystem<R> > vectorCommitmentSystem;
+        std::unique_ptr<Encryption::EncryptionSystem> encryptionSystem;
+        std::unique_ptr<VC::VectorCommitmentSystem> vectorCommitmentSystem;
 
     public:
-        PVSS(std::unique_ptr<Encryption::EncryptionSystem<R> > encryptionSystem,
-             std::unique_ptr<VC::VectorCommitmentSystem<R> > vectorCommitmentSystem) {
-            this->encryptionSystem = std::move(encryptionSystem);
-            this->vectorCommitmentSystem = std::move(vectorCommitmentSystem);
+        PVSS(std::unique_ptr<Encryption::EncryptionSystem> encryptionSystem,
+             std::unique_ptr<VC::VectorCommitmentSystem> vectorCommitmentSystem): encryptionSystem(
+                std::move(encryptionSystem)), vectorCommitmentSystem(std::move(vectorCommitmentSystem)) {
         }
 
-        Params setup(int securityParameter, int numberOfParties, int threshold);
+        void setup(Params &params, int securityParameter, int numberOfParties, int threshold);
 
-        Encryption::KeyPair generateKey(const Params &params, int index);
+        void generateKey(Encryption::KeyPair &key, const Params &params);
 
-        bool verifyKey(const Params &params, int index, const Encryption::PublicKey &publicKey,
-                       const Encryption::KeyProof &proof);
+        bool verifyKey(const Params &params, const Encryption::PublicKey &publicKey, const Encryption::KeyProof &proof);
 
-        DistributionProof<R> distribute(const Params &params,
-                                        const std::vector<Encryption::PublicKey> &publicKeys, const R &secret);
+        void distribute(DistributionProof &proof, const Params &params,
+                        const std::vector<Encryption::PublicKey> &publicKeys, const NTL::ZZ &secret);
 
         bool verifyDistribution(const Params &params, const std::vector<Encryption::PublicKey> &publicKeys,
-                                const DistributionProof<R> &proof);
+                                const DistributionProof &proof);
 
-        Encryption::DecryptionProof<R> decryptShare(const Params &params, int index,
-                                                    const Encryption::PrivateKey &privateKey,
-                                                    const std::vector<R> &encryptedShare);
+        void decryptShare(DecryptionProof &proof, const Params &params,
+                          const Encryption::PrivateKey &privateKey, const NTL::vec_ZZ &encryptedShare);
 
-        bool verifyDecryption(const Params &params, int index, const Encryption::PublicKey &publicKey,
-                              const std::vector<R> &encryptedShare, const Encryption::DecryptionProof<R> &proof);
+        bool verifyDecryption(const Params &params, const Encryption::PublicKey &publicKey,
+                              const NTL::vec_ZZ &encryptedShare, const DecryptionProof &proof);
 
-        R reconstruct(const Params &params, const std::vector<std::vector<R> > &decryptedShares);
+        void reconstruct(NTL::ZZ &reconstruction, const Params &params, const std::vector<NTL::ZZ> &decryptedShares);
     };
 }
 
