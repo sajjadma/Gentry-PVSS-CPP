@@ -32,12 +32,12 @@
 namespace MyFramework {
     namespace Encryption {
         struct Params {
-            int plainSize;
+            long plainSize;
             NTL::ZZ plainBound;
-            int randomSize;
+            long randomSize;
             NTL::ZZ randomBound;
             NTL::ZZ coefficientBound;
-            int cipherSize;
+            long cipherSize;
         };
 
         struct PrivateKey {
@@ -62,7 +62,7 @@ namespace MyFramework {
         struct EncryptionSystem {
             virtual ~EncryptionSystem() = default;
 
-            virtual void setup(Params *params, int securityParameter, NTL::ZZ plainBound) = 0;
+            virtual void setup(Params *params, long securityParameter, NTL::ZZ plainBound) = 0;
 
             virtual void generateKey(KeyPair *key, const Params *params) = 0;
 
@@ -85,8 +85,8 @@ namespace MyFramework {
                                                               const PublicKey *publicKey,
                                                               const NTL::vec_ZZ &cipherValues) = 0;
 
-            virtual void decrypt(DecryptionProof *proof, const Params *params, const PrivateKey *privateKey,
-                                 const NTL::vec_ZZ &cipherValues) = 0;
+            virtual void decrypt(DecryptionProof *proof, const Params *params, const PublicKey *publicKey,
+                                 const PrivateKey *privateKey, const NTL::vec_ZZ &cipherValues) = 0;
 
             virtual bool verifyDecryption(const Params *params, const PublicKey *publicKey,
                                           const NTL::vec_ZZ &cipherValues, const DecryptionProof *proof) = 0;
@@ -95,9 +95,9 @@ namespace MyFramework {
 
     namespace VC {
         struct Params {
-            int firstInputSize;
-            int secondInputSize;
-            int outputSize;
+            long firstInputSize;
+            long secondInputSize;
+            long outputSize;
             NTL::ZZ firstInputBound;
             NTL::ZZ secondInputBound;
             NTL::ZZ coefficientBound;
@@ -116,8 +116,8 @@ namespace MyFramework {
         struct VectorCommitmentSystem {
             virtual ~VectorCommitmentSystem() = default;
 
-            virtual void setup(Params *params, int securityParameter, int firstInputSize, int secondInputSize,
-                               int outputSize, NTL::ZZ firstInputBound, NTL::ZZ secondInputBound,
+            virtual void setup(Params *params, long securityParameter, long firstInputSize, long secondInputSize,
+                               long outputSize, NTL::ZZ firstInputBound, NTL::ZZ secondInputBound,
                                NTL::ZZ coefficientBound) = 0;
 
             virtual void commit(Commitment *commitment, Auxiliary *auxiliary, const Params *params,
@@ -139,8 +139,8 @@ namespace MyFramework {
     }
 
     struct Params {
-        int numberOfParties;
-        int threshold;
+        long numberOfParties;
+        long threshold;
         NTL::ZZ prime;
         Encryption::Params *encryptionParams;
         VC::Params *vcParams;
@@ -175,7 +175,7 @@ namespace MyFramework {
                                                                                 std::move(vectorCommitmentSystem)) {
         }
 
-        void setup(Params &params, int securityParameter, int numberOfParties, int threshold);
+        void setup(Params &params, long securityParameter, long numberOfParties, long threshold);
 
         void generateKey(Encryption::KeyPair *key, const Params &params);
 
@@ -187,7 +187,7 @@ namespace MyFramework {
         bool verifyDistribution(const Params &params, const std::vector<Encryption::PublicKey *> &publicKeys,
                                 const DistributionProof &proof);
 
-        void decryptShare(DecryptionProof &proof, const Params &params,
+        void decryptShare(DecryptionProof &proof, const Params &params, const Encryption::PublicKey *publicKey,
                           const Encryption::PrivateKey *privateKey, const NTL::vec_ZZ &encryptedShare);
 
         bool verifyDecryption(const Params &params, const Encryption::PublicKey *publicKey,
