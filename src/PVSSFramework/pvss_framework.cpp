@@ -37,7 +37,7 @@ namespace MyFramework {
 
         NextPrime(params.prime, NTL::ZZ(numberOfParties + securityParameter));
 
-        NTL::ZZ p3 = power(params.prime, 3);
+        NTL::ZZ p3 = params.prime * params.prime * params.prime;
 
         this->encryptionSystem->setup(params.encryptionParams, securityParameter, p3);
 
@@ -95,7 +95,7 @@ namespace MyFramework {
             NTL::vec_ZZ encodedShare;
             encodedShare.SetLength(params.encryptionParams->plainSize);
             for (long j = 0; j < params.encryptionParams->plainSize; j++) {
-                long index = params.threshold + 1 + (i * params.encryptionParams->plainSize) + j;
+                const long index = params.threshold + 1 + (i * params.encryptionParams->plainSize) + j;
                 encodedShare[j] = share % params.encryptionParams->plainBound;
                 firstInput[index] = encodedShare[j];
                 M1.put(outputIndex, index,
@@ -104,11 +104,17 @@ namespace MyFramework {
             }
 
             NTL::vec_ZZ r;
+            NTL::ZZ tmpR;
             r.SetLength(params.encryptionParams->randomSize);
             for (long j = 0; j < params.encryptionParams->randomSize; j++) {
-                long index = (i * params.encryptionParams->randomSize) + j;
-                RandomBnd(r[j], params.encryptionParams->randomBound);
-                secondInput[index] = r[j];
+                RandomBnd(tmpR, params.encryptionParams->randomBound);
+                r[j] = tmpR;
+                for (long k = 0; k < params.vcParams->secondInputPartitionSize; k++) {
+                    const long index = (i * params.encryptionParams->randomSize) +
+                                       (j * params.vcParams->secondInputPartitionSize) + k;
+                    secondInput[index] = tmpR % params.vcParams->secondInputBound;
+                    tmpR = tmpR / params.vcParams->secondInputBound;
+                }
             }
 
             NTL::mat_ZZ f1, f2;
@@ -120,13 +126,20 @@ namespace MyFramework {
             for (long j = 0; j < params.encryptionParams->cipherSize; j++) {
                 outputIndex++;
                 for (long k = 0; k < params.encryptionParams->plainSize; k++) {
-                    long index = params.threshold + 1 + (i * params.encryptionParams->plainSize) + k;
+                    const long index = params.threshold + 1 + (i * params.encryptionParams->plainSize) + k;
                     M1.put(outputIndex, index, f1(j, k));
                 }
 
                 for (long k = 0; k < params.encryptionParams->randomSize; k++) {
-                    long index = (i * params.encryptionParams->randomSize) + k;
-                    M2.put(outputIndex, index, f2(j, k));
+                    for (long l = 0; l < params.vcParams->secondInputPartitionSize; l++) {
+                        const long index = (i * params.encryptionParams->randomSize) +
+                                           (k * params.vcParams->secondInputPartitionSize) + l;
+                        M2.put(outputIndex, index,
+                               l == 0
+                                   ? f2(j, k)
+                                   : f2(j, k) * params.vcParams->secondInputBound *
+                                     M1(outputIndex, index - 1));
+                    }
                 }
             }
         }
@@ -156,7 +169,7 @@ namespace MyFramework {
             }
 
             for (long j = 0; j < params.encryptionParams->plainSize; j++) {
-                long index = params.threshold + 1 + (i * params.encryptionParams->plainSize) + j;
+                const long index = params.threshold + 1 + (i * params.encryptionParams->plainSize) + j;
                 M1.put(outputIndex, index,
                        j == 0 ? 1 : params.encryptionParams->plainBound * M1(outputIndex, index - 1));
             }
@@ -173,13 +186,20 @@ namespace MyFramework {
                 }
 
                 for (long k = 0; k < params.encryptionParams->plainSize; k++) {
-                    long index = params.threshold + 1 + (i * params.encryptionParams->plainSize) + k;
+                    const long index = params.threshold + 1 + (i * params.encryptionParams->plainSize) + k;
                     M1.put(outputIndex, index, f1(j, k));
                 }
 
                 for (long k = 0; k < params.encryptionParams->randomSize; k++) {
-                    long index = (i * params.encryptionParams->randomSize) + k;
-                    M2.put(outputIndex, index, f2(j, k));
+                    for (long l = 0; l < params.vcParams->secondInputPartitionSize; l++) {
+                        const long index = (i * params.encryptionParams->randomSize) +
+                                           (k * params.vcParams->secondInputPartitionSize) + l;
+                        M2.put(outputIndex, index,
+                               l == 0
+                                   ? f2(j, k)
+                                   : f2(j, k) * params.vcParams->secondInputBound *
+                                     M1(outputIndex, index - 1));
+                    }
                 }
             }
         }
@@ -229,7 +249,7 @@ namespace MyFramework {
             b[i] = NTL::to_ZZ_p(decryptedShares[i]);
         }
 
-        NTL::ZZ_pX f = NTL::interpolate(a, b);
+        const NTL::ZZ_pX f = NTL::interpolate(a, b);
         reconstruction = NTL::rep(NTL::eval(f, NTL::ZZ_p::zero()));
     }
 }

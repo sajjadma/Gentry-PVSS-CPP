@@ -121,7 +121,36 @@ namespace MyEncryption {
 }
 
 namespace MyVectorCommitment {
+    struct MyParams final : MyFramework::VC::Params {
+        NTL::mat_ZZ A;
+        NTL::vec_ZZ v1, v2, h, h2, t;
+        NTL::Mat<NTL::vec_ZZ> u;
+        NTL::ZZ p, q, beta, alpha;
+        long l, n;
+        bool isComplement = false;
+    };
+
+    struct MyCommitment final : MyFramework::VC::Commitment {
+        NTL::ZZ c;
+    };
+
+    struct MyAuxiliary final : MyFramework::VC::Auxiliary {
+        NTL::vec_vec_ZZ u1, u2;
+        NTL::vec_ZZ x1, x2;
+    };
+
+    struct MyOpeningProof final : MyFramework::VC::OpeningProof {
+        NTL::ZZ _c;
+        NTL::vec_ZZ pi, pi_eq, pi_ip;
+    };
+
     class VectorCommitmentType1 final : MyFramework::VC::VectorCommitmentSystem {
+        static void _generateTrapdoor(NTL::mat_ZZ &A, NTL::mat_ZZ &trapdoor, long n, long m, const NTL::ZZ &module,
+                                      const NTL::ZZ &bound);
+
+        static void _preSample(NTL::vec_ZZ &x, const NTL::mat_ZZ &trapdoor, const NTL::mat_ZZ &A, const NTL::vec_ZZ &b,
+                               const NTL::ZZ &bound);
+
     public:
         void setup(MyFramework::VC::Params *params, long securityParameter, long firstInputSize, long secondInputSize,
                    long outputSize, NTL::ZZ firstInputBound, NTL::ZZ secondInputBound,

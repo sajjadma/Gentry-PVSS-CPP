@@ -97,6 +97,7 @@ namespace MyFramework {
         struct Params {
             long firstInputSize;
             long secondInputSize;
+            long secondInputPartitionSize;
             long outputSize;
             NTL::ZZ firstInputBound;
             NTL::ZZ secondInputBound;
