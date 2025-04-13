@@ -61,9 +61,9 @@ namespace MyEncryption {
         static void _hash(NTL::vec_ZZ &hash, const NTL::mat_ZZ &A);
 
     public:
-        void setup(MyFramework::Encryption::Params *params, long securityParameter, NTL::ZZ plainBound) override;
+        void setup(MyFramework::Encryption::Params *&params, long securityParameter, NTL::ZZ plainBound) override;
 
-        void generateKey(MyFramework::Encryption::KeyPair *key, const MyFramework::Encryption::Params *params) override;
+        void generateKey(MyFramework::Encryption::KeyPair *&key, const MyFramework::Encryption::Params *params) override;
 
         bool verifyKey(const MyFramework::Encryption::Params *params,
                        const MyFramework::Encryption::PublicKey *publicKey,
@@ -80,7 +80,7 @@ namespace MyEncryption {
                                                   const MyFramework::Encryption::PublicKey *publicKey,
                                                   const NTL::vec_ZZ &cipherValues) override;
 
-        void decrypt(MyFramework::Encryption::DecryptionProof *proof, const MyFramework::Encryption::Params *params,
+        void decrypt(MyFramework::Encryption::DecryptionProof *&proof, const MyFramework::Encryption::Params *params,
                      const MyFramework::Encryption::PublicKey *publicKey,
                      const MyFramework::Encryption::PrivateKey *privateKey, const NTL::vec_ZZ &cipherValues) override;
 
@@ -91,9 +91,9 @@ namespace MyEncryption {
 
     class EncryptionType2 final : MyFramework::Encryption::EncryptionSystem {
     public:
-        void setup(MyFramework::Encryption::Params *params, long securityParameter, NTL::ZZ plainBound) override;
+        void setup(MyFramework::Encryption::Params *&params, long securityParameter, NTL::ZZ plainBound) override;
 
-        void generateKey(MyFramework::Encryption::KeyPair *key, const MyFramework::Encryption::Params *params) override;
+        void generateKey(MyFramework::Encryption::KeyPair *&key, const MyFramework::Encryption::Params *params) override;
 
         bool verifyKey(const MyFramework::Encryption::Params *params,
                        const MyFramework::Encryption::PublicKey *publicKey,
@@ -110,7 +110,7 @@ namespace MyEncryption {
                                                   const MyFramework::Encryption::PublicKey *publicKey,
                                                   const NTL::vec_ZZ &cipherValues) override;
 
-        void decrypt(MyFramework::Encryption::DecryptionProof *proof, const MyFramework::Encryption::Params *params,
+        void decrypt(MyFramework::Encryption::DecryptionProof *&proof, const MyFramework::Encryption::Params *params,
                      const MyFramework::Encryption::PublicKey *public_key,
                      const MyFramework::Encryption::PrivateKey *privateKey, const NTL::vec_ZZ &cipherValues) override;
 
@@ -152,15 +152,15 @@ namespace MyVectorCommitment {
                                const NTL::ZZ &bound);
 
     public:
-        void setup(MyFramework::VC::Params *params, long securityParameter, long firstInputSize, long secondInputSize,
+        void setup(MyFramework::VC::Params *&params, long securityParameter, long firstInputSize, long secondInputSize,
                    long outputSize, NTL::ZZ firstInputBound, NTL::ZZ secondInputBound,
                    NTL::ZZ coefficientBound) override;
 
-        void commit(MyFramework::VC::Commitment *commitment, MyFramework::VC::Auxiliary *auxiliary,
+        void commit(MyFramework::VC::Commitment *&commitment, MyFramework::VC::Auxiliary *&auxiliary,
                     const MyFramework::VC::Params *params, const NTL::vec_ZZ &firstInput,
                     const NTL::vec_ZZ &secondInput) override;
 
-        void open(MyFramework::VC::OpeningProof *proof, const MyFramework::VC::Params *params,
+        void open(MyFramework::VC::OpeningProof *&proof, const MyFramework::VC::Params *params,
                   MyFramework::VC::Auxiliary *auxiliary, const NTL::mat_ZZ &openingFunction1,
                   const NTL::mat_ZZ &openingFunction2) override;
 

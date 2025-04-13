@@ -62,9 +62,9 @@ namespace MyFramework {
         struct EncryptionSystem {
             virtual ~EncryptionSystem() = default;
 
-            virtual void setup(Params *params, long securityParameter, NTL::ZZ plainBound) = 0;
+            virtual void setup(Params *&params, long securityParameter, NTL::ZZ plainBound) = 0;
 
-            virtual void generateKey(KeyPair *key, const Params *params) = 0;
+            virtual void generateKey(KeyPair *&key, const Params *params) = 0;
 
             virtual bool verifyKey(const Params *params, const PublicKey *publicKey, const KeyProof *proof) = 0;
 
@@ -85,7 +85,7 @@ namespace MyFramework {
                                                               const PublicKey *publicKey,
                                                               const NTL::vec_ZZ &cipherValues) = 0;
 
-            virtual void decrypt(DecryptionProof *proof, const Params *params, const PublicKey *publicKey,
+            virtual void decrypt(DecryptionProof *&proof, const Params *params, const PublicKey *publicKey,
                                  const PrivateKey *privateKey, const NTL::vec_ZZ &cipherValues) = 0;
 
             virtual bool verifyDecryption(const Params *params, const PublicKey *publicKey,
@@ -117,11 +117,11 @@ namespace MyFramework {
         struct VectorCommitmentSystem {
             virtual ~VectorCommitmentSystem() = default;
 
-            virtual void setup(Params *params, long securityParameter, long firstInputSize, long secondInputSize,
+            virtual void setup(Params *&params, long securityParameter, long firstInputSize, long secondInputSize,
                                long outputSize, NTL::ZZ firstInputBound, NTL::ZZ secondInputBound,
                                NTL::ZZ coefficientBound) = 0;
 
-            virtual void commit(Commitment *commitment, Auxiliary *auxiliary, const Params *params,
+            virtual void commit(Commitment *&commitment, Auxiliary *&auxiliary, const Params *params,
                                 const NTL::vec_ZZ &firstInput, const NTL::vec_ZZ &secondInput) = 0;
 
             /**
@@ -130,7 +130,7 @@ namespace MyFramework {
              *
              * @details output = openingFunction1 * firstInput + openingFunction2 * secondInput
              */
-            virtual void open(OpeningProof *proof, const Params *params, Auxiliary *auxiliary,
+            virtual void open(OpeningProof *&proof, const Params *params, Auxiliary *auxiliary,
                               const NTL::mat_ZZ &openingFunction1, const NTL::mat_ZZ &openingFunction2) = 0;
 
             virtual bool verify(const Params *params, const NTL::mat_ZZ &openingFunction1,

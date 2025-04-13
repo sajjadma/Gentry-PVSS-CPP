@@ -22,8 +22,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  **/
 
+#include <my_implementation.hpp>
 #include <pvss_framework.hpp>
-#include <NTL/RR.h>
+#include <NTL/xdouble.h>
 #include <NTL/ZZ_pX.h>
 
 using namespace std;
@@ -85,11 +86,11 @@ namespace MyFramework {
 
         long outputIndex = 0;
         for (long i = 0; i < params.numberOfParties; i++) {
-            M1.put(outputIndex, 0, 1);
+            M1.put(outputIndex, 0, NTL::to_ZZ(1));
             NTL::ZZ share = firstInput[0];
             for (long j = 1; j < params.threshold + 1; j++) {
-                M1.put(outputIndex, j, ((i + 1) * M1(outputIndex, j - 1)) % params.prime);
-                share = share + firstInput[j] * M1(outputIndex, j);
+                M1.put(outputIndex, j, ((i + 1) * M1[outputIndex][j - 1]) % params.prime);
+                share = share + firstInput[j] * M1[outputIndex][j];
             }
 
             NTL::vec_ZZ encodedShare;
@@ -99,7 +100,7 @@ namespace MyFramework {
                 encodedShare[j] = share % params.encryptionParams->plainBound;
                 firstInput[index] = encodedShare[j];
                 M1.put(outputIndex, index,
-                       j == 0 ? 1 : params.encryptionParams->plainBound * M1(outputIndex, index - 1));
+                       j == 0 ? NTL::to_ZZ(1) : params.encryptionParams->plainBound * M1[outputIndex][index - 1]);
                 share = share / params.encryptionParams->plainBound;
             }
 
@@ -127,7 +128,7 @@ namespace MyFramework {
                 outputIndex++;
                 for (long k = 0; k < params.encryptionParams->plainSize; k++) {
                     const long index = params.threshold + 1 + (i * params.encryptionParams->plainSize) + k;
-                    M1.put(outputIndex, index, f1(j, k));
+                    M1.put(outputIndex, index, f1[j][k]);
                 }
 
                 for (long k = 0; k < params.encryptionParams->randomSize; k++) {
@@ -136,9 +137,9 @@ namespace MyFramework {
                                            (k * params.vcParams->secondInputPartitionSize) + l;
                         M2.put(outputIndex, index,
                                l == 0
-                                   ? f2(j, k)
-                                   : f2(j, k) * params.vcParams->secondInputBound *
-                                     M1(outputIndex, index - 1));
+                                   ? f2[j][k]
+                                   : f2[j][k] * params.vcParams->secondInputBound *
+                                     M1[outputIndex][index - 1]);
                     }
                 }
             }
@@ -159,19 +160,19 @@ namespace MyFramework {
 
         long outputIndex = 0;
         for (long i = 0; i < params.numberOfParties; i++) {
-            M1.put(outputIndex, 0, 1);
+            M1.put(outputIndex, 0, NTL::to_ZZ(1));
             for (long j = 1; j < params.threshold + 1; j++) {
                 if (proof.proof->output[outputIndex] != 0) {
                     return false;
                 }
 
-                M1.put(outputIndex, j, ((i + 1) * M1(outputIndex, j - 1)) % params.prime);
+                M1.put(outputIndex, j, ((i + 1) * M1[outputIndex][j - 1]) % params.prime);
             }
 
             for (long j = 0; j < params.encryptionParams->plainSize; j++) {
                 const long index = params.threshold + 1 + (i * params.encryptionParams->plainSize) + j;
                 M1.put(outputIndex, index,
-                       j == 0 ? 1 : params.encryptionParams->plainBound * M1(outputIndex, index - 1));
+                       j == 0 ? NTL::to_ZZ(1) : params.encryptionParams->plainBound * M1[outputIndex][index - 1]);
             }
 
             NTL::mat_ZZ f1, f2;
@@ -187,7 +188,7 @@ namespace MyFramework {
 
                 for (long k = 0; k < params.encryptionParams->plainSize; k++) {
                     const long index = params.threshold + 1 + (i * params.encryptionParams->plainSize) + k;
-                    M1.put(outputIndex, index, f1(j, k));
+                    M1.put(outputIndex, index, f1[j][k]);
                 }
 
                 for (long k = 0; k < params.encryptionParams->randomSize; k++) {
@@ -196,9 +197,9 @@ namespace MyFramework {
                                            (k * params.vcParams->secondInputPartitionSize) + l;
                         M2.put(outputIndex, index,
                                l == 0
-                                   ? f2(j, k)
-                                   : f2(j, k) * params.vcParams->secondInputBound *
-                                     M1(outputIndex, index - 1));
+                                   ? f2[j][k]
+                                   : f2[j][k] * params.vcParams->secondInputBound *
+                                     M1[outputIndex][index - 1]);
                     }
                 }
             }
@@ -252,4 +253,6 @@ namespace MyFramework {
         const NTL::ZZ_pX f = NTL::interpolate(a, b);
         reconstruction = NTL::rep(NTL::eval(f, NTL::ZZ_p::zero()));
     }
+
+    template class PVSS<MyEncryption::EncryptionType1, MyVectorCommitment::VectorCommitmentType1>;
 }

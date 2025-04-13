@@ -61,7 +61,7 @@ namespace MyEncryption {
         for (long i = 0; i < n; i++) {
             for (long j = 0; j < k; j++) {
                 const long index = i * k + j;
-                G[i][index] = j == 0 ? 1 : G[i][index - 1] * 2;
+                G[i][index] = j == 0 ? NTL::to_ZZ(1) : G[i][index - 1] * 2;
             }
         }
 
@@ -123,7 +123,7 @@ namespace MyEncryption {
     }
 
     // TODO: Set Parameters Properly
-    void EncryptionType1::setup(MyFramework::Encryption::Params *params, long securityParameter, NTL::ZZ plainBound) {
+    void EncryptionType1::setup(MyFramework::Encryption::Params *&params, long securityParameter, NTL::ZZ plainBound) {
         MyParams myParams;
         myParams.module = NTL::power2_ZZ(NTL::NextPowerOfTwo(to_long(plainBound)));
         const long k = NTL::NumBits(plainBound);
@@ -140,7 +140,7 @@ namespace MyEncryption {
         params = &myParams;
     }
 
-    void EncryptionType1::generateKey(MyFramework::Encryption::KeyPair *key,
+    void EncryptionType1::generateKey(MyFramework::Encryption::KeyPair *&key,
                                       const MyFramework::Encryption::Params *params) {
         const auto myParams = (MyParams *) params;
         MyPrivateKey privateKey;
@@ -303,7 +303,7 @@ namespace MyEncryption {
         }
     }
 
-    void EncryptionType1::decrypt(MyFramework::Encryption::DecryptionProof *proof,
+    void EncryptionType1::decrypt(MyFramework::Encryption::DecryptionProof *&proof,
                                   const MyFramework::Encryption::Params *params,
                                   const MyFramework::Encryption::PublicKey *publicKey,
                                   const MyFramework::Encryption::PrivateKey *privateKey,

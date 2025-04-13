@@ -23,6 +23,7 @@
  **/
 
 #include <my_implementation.hpp>
+#include <NTL/xdouble.h>
 #include <NTL/ZZ_pX.h>
 #include <sodium/crypto_generichash.h>
 
@@ -61,7 +62,7 @@ namespace MyVectorCommitment {
         for (long i = 0; i < n; i++) {
             for (long j = 0; j < k; j++) {
                 const long index = i * k + j;
-                G[i][index] = j == 0 ? 1 : G[i][index - 1] * 2;
+                G[i][index] = j == 0 ? NTL::to_ZZ(1) : G[i][index - 1] * 2;
             }
         }
 
@@ -102,7 +103,7 @@ namespace MyVectorCommitment {
     }
 
     // TODO: Set Parameters
-    void VectorCommitmentType1::setup(MyFramework::VC::Params *params, long securityParameter, long firstInputSize,
+    void VectorCommitmentType1::setup(MyFramework::VC::Params *&params, long securityParameter, long firstInputSize,
                                       long secondInputSize, long outputSize, NTL::ZZ firstInputBound,
                                       NTL::ZZ secondInputBound, NTL::ZZ coefficientBound) {
         MyParams myParams;
@@ -139,7 +140,7 @@ namespace MyVectorCommitment {
                     v1Inv[i] = NTL::RandomBnd(myParams.q);
                     NTL::InvMod(myParams.v1[i], v1Inv[i], myParams.q);
                     break;
-                } catch ([[maybe_unused]] exception &e) {
+                } catch (...) {
                 }
             }
         }
@@ -150,7 +151,7 @@ namespace MyVectorCommitment {
                     v2Inv[i] = NTL::RandomBnd(myParams.p);
                     NTL::InvMod(myParams.v2[i], v2Inv[i], myParams.q);
                     break;
-                } catch ([[maybe_unused]] exception &e) {
+                } catch (...) {
                 }
             }
         }
@@ -197,7 +198,7 @@ namespace MyVectorCommitment {
         params = &myParams;
     }
 
-    void VectorCommitmentType1::commit(MyFramework::VC::Commitment *commitment, MyFramework::VC::Auxiliary *auxiliary,
+    void VectorCommitmentType1::commit(MyFramework::VC::Commitment *&commitment, MyFramework::VC::Auxiliary *&auxiliary,
                                        const MyFramework::VC::Params *params, const NTL::vec_ZZ &firstInput,
                                        const NTL::vec_ZZ &secondInput) {
         MyCommitment myCommitment;
@@ -252,14 +253,14 @@ namespace MyVectorCommitment {
         auxiliary = &myAuxiliary;
     }
 
-    void VectorCommitmentType1::open(MyFramework::VC::OpeningProof *proof, const MyFramework::VC::Params *params,
+    void VectorCommitmentType1::open(MyFramework::VC::OpeningProof *&proof, const MyFramework::VC::Params *params,
                                      MyFramework::VC::Auxiliary *auxiliary, const NTL::mat_ZZ &openingFunction1,
                                      const NTL::mat_ZZ &openingFunction2) {
         MyOpeningProof myProof;
         auto myParams = (MyParams *) params;
         auto myAuxiliary = (MyAuxiliary *) auxiliary;
-        MyCommitment _commitment;
-        MyAuxiliary _auxiliary;
+        MyFramework::VC::Commitment *_commitmentTmp;
+        MyFramework::VC::Auxiliary *_auxiliaryTmp;
         myProof.pi.SetLength(myParams->l);
         myProof.pi_eq.SetLength(myParams->l);
         myProof.pi_ip.SetLength(myParams->l);
@@ -273,8 +274,10 @@ namespace MyVectorCommitment {
             x2[i] = myAuxiliary->x2[i] * myParams->h2[i];
         }
         myParams->isComplement = true;
-        commit(&_commitment, &_auxiliary, myParams, x1, x2);
-        myProof._c = _commitment.c;
+        commit(_commitmentTmp, _auxiliaryTmp, myParams, x1, x2);
+        auto _commitment = (MyCommitment *) _commitmentTmp;
+        auto _auxiliary = (MyAuxiliary *) _auxiliaryTmp;
+        myProof._c = _commitment->c;
         myParams->isComplement = false;
 
         for (long i = 0; i < myParams->outputSize; i++) {
@@ -287,7 +290,7 @@ namespace MyVectorCommitment {
         }
 
         for (long i = 0; i < myParams->secondInputSize; i++) {
-            myProof.pi_eq += myParams->h2[i] * NTL::InvMod(myParams->v2[i], myParams->q) * _auxiliary.u2[i];
+            myProof.pi_eq += myParams->h2[i] * NTL::InvMod(myParams->v2[i], myParams->q) * _auxiliary->u2[i];
         }
 
         for (long i = 0; i < myParams->secondInputSize; i++) {
