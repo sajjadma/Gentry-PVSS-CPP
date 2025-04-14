@@ -31,8 +31,9 @@ using namespace std;
 
 namespace MyFramework {
     template<typename EncryptionType, typename VectorCommitmentType>
-    void PVSS<EncryptionType, VectorCommitmentType>::setup(Params &params, long securityParameter, long numberOfParties,
-                                                           long threshold) {
+    void PVSS<EncryptionType, VectorCommitmentType>::setup(Params &params, const long securityParameter,
+                                                           const long numberOfParties,
+                                                           const long threshold) {
         params.numberOfParties = numberOfParties;
         params.threshold = threshold;
 
@@ -54,8 +55,8 @@ namespace MyFramework {
     }
 
     template<typename EncryptionType, typename VectorCommitmentType>
-    void PVSS<EncryptionType, VectorCommitmentType>::generateKey(Encryption::KeyPair *key, const Params &params) {
-        this->encryptionSystem->generateKey(key, params.encryptionParams);
+    void PVSS<EncryptionType, VectorCommitmentType>::generateKey(Encryption::KeyPair &key, const Params &params) {
+        this->encryptionSystem->generateKey(&key, params.encryptionParams);
     }
 
     template<typename EncryptionType, typename VectorCommitmentType>

@@ -123,40 +123,34 @@ namespace MyEncryption {
     }
 
     // TODO: Set Parameters Properly
-    void EncryptionType1::setup(MyFramework::Encryption::Params *&params, long securityParameter, NTL::ZZ plainBound) {
-        MyParams myParams;
+    void EncryptionType1::setup(const MyFramework::Encryption::Params *params, const long securityParameter,
+                                const NTL::ZZ plainBound) {
+        const auto myParams = (MyParams *) params;
         const long k = NTL::NumBits(plainBound);
-        myParams.module = NTL::power2_ZZ(k);
-        myParams.l = k; // TODO: یا هر مقدار مناسب دیگر
-        myParams.m = 2 * myParams.l * k;
-        myParams.d = k; // TODO: یا هر مقدار مناسب دیگر
-        myParams.randomBound = NTL::power2_ZZ(k / 2 - 2);
-        myParams.plainBound = myParams.module;
-        myParams.coefficientBound = myParams.module;
-        myParams.plainSize = 1;
-        myParams.randomSize = myParams.m * myParams.d + myParams.l + myParams.m + myParams.d;
-        myParams.cipherSize = myParams.l * myParams.d + myParams.m + myParams.d;
-
-        params = &myParams;
+        myParams->module = NTL::power2_ZZ(k);
+        myParams->l = k; // TODO: یا هر مقدار مناسب دیگر
+        myParams->m = 2 * myParams->l * k;
+        myParams->d = k; // TODO: یا هر مقدار مناسب دیگر
+        myParams->randomBound = NTL::power2_ZZ(k / 2 - 2);
+        myParams->plainBound = myParams->module;
+        myParams->coefficientBound = myParams->module;
+        myParams->plainSize = 1;
+        myParams->randomSize = myParams->m * myParams->d + myParams->l + myParams->m + myParams->d;
+        myParams->cipherSize = myParams->l * myParams->d + myParams->m + myParams->d;
     }
 
-    void EncryptionType1::generateKey(MyFramework::Encryption::KeyPair *&key,
+    void EncryptionType1::generateKey(const MyFramework::Encryption::KeyPair *key,
                                       const MyFramework::Encryption::Params *params) {
         const auto myParams = (MyParams *) params;
-        MyPrivateKey privateKey;
-        MyPublicKey publicKey;
-        MyKeyProof proof;
+        const auto privateKey = (MyPrivateKey *) key->privateKey;
+        const auto publicKey = (MyPublicKey *) key->publicKey;
+        const auto proof = (MyKeyProof *) key->proof;
 
         NTL::vec_ZZ b;
-        _generateTrapdoor(publicKey.A, privateKey.trapdoor, myParams->l, myParams->m, myParams->module,
+        _generateTrapdoor(publicKey->A, privateKey->trapdoor, myParams->l, myParams->m, myParams->module,
                           myParams->randomBound);
-        _hash(b, publicKey.A);
-        _preSample(proof.x, privateKey.trapdoor, publicKey.A, b, myParams->randomBound);
-
-        key = new MyFramework::Encryption::KeyPair();
-        key->privateKey = &privateKey;
-        key->publicKey = &publicKey;
-        key->proof = &proof;
+        _hash(b, publicKey->A);
+        _preSample(proof->x, privateKey->trapdoor, publicKey->A, b, myParams->randomBound);
     }
 
     bool EncryptionType1::verifyKey(const MyFramework::Encryption::Params *params,
@@ -303,12 +297,12 @@ namespace MyEncryption {
         }
     }
 
-    void EncryptionType1::decrypt(MyFramework::Encryption::DecryptionProof *&proof,
+    void EncryptionType1::decrypt(const MyFramework::Encryption::DecryptionProof *proof,
                                   const MyFramework::Encryption::Params *params,
                                   const MyFramework::Encryption::PublicKey *publicKey,
                                   const MyFramework::Encryption::PrivateKey *privateKey,
                                   const NTL::vec_ZZ &cipherValues) {
-        MyDecryptionProof myProof;
+        const auto myProof = (MyDecryptionProof *) proof;
         const auto myParams = (MyParams *) params;
         const auto myPublicKey = (MyPublicKey *) publicKey;
         const auto myPrivateKey = (MyPrivateKey *) privateKey;
@@ -316,9 +310,9 @@ namespace MyEncryption {
         tmpU.SetLength(myParams->l);
         h.SetLength(myParams->m);
         C.SetLength(myParams->d);
-        myProof.B.SetDims(myParams->m, myParams->d);
-        myProof.decryptedValues.SetLength(1);
-        myProof.decryptedValues[0] = 0;
+        myProof->B.SetDims(myParams->m, myParams->d);
+        myProof->decryptedValues.SetLength(1);
+        myProof->decryptedValues[0] = 0;
         long outputIndex = 0;
 
         for (long j = 0; j < myParams->d; j++) {
@@ -329,7 +323,7 @@ namespace MyEncryption {
 
             _preSample(tmpB, myPrivateKey->trapdoor, myPublicKey->A, tmpU, myParams->randomBound);
             for (long i = 0; i < myParams->m; i++) {
-                myProof.B[i][j] = tmpB[i];
+                myProof->B[i][j] = tmpB[i];
             }
         }
 
@@ -343,22 +337,20 @@ namespace MyEncryption {
             outputIndex++;
         }
 
-        NTL::vec_ZZ tmpM = C - (h * myProof.B);
+        NTL::vec_ZZ tmpM = C - (h * myProof->B);
         const NTL::ZZ bound = myParams->module / 2;
         // TODO: If param.d changes 2 must change too
         NTL::ZZ pow = myParams->module / 2;
         for (long i = myParams->d - 1; i >= 0; i++) {
-            if (((tmpM[i] - pow * myProof.decryptedValues[0]) % myParams->module) > bound) {
-                myProof.decryptedValues[0] += bound / pow;
+            if (((tmpM[i] - pow * myProof->decryptedValues[0]) % myParams->module) > bound) {
+                myProof->decryptedValues[0] += bound / pow;
             }
 
-            tmpM[i] = pow * myProof.decryptedValues[0];
+            tmpM[i] = pow * myProof->decryptedValues[0];
             pow /= 2;
         }
 
-        myProof.e = C - h * myProof.B - tmpM;
-
-        proof = &myProof;
+        myProof->e = C - h * myProof->B - tmpM;
     }
 
     bool EncryptionType1::verifyDecryption(const MyFramework::Encryption::Params *params,

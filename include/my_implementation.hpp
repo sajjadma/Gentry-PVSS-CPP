@@ -52,8 +52,8 @@ namespace MyEncryption {
     };
 
     class EncryptionType1 final : MyFramework::Encryption::EncryptionSystem {
-        static void _generateTrapdoor(NTL::mat_ZZ &A, NTL::mat_ZZ &trapdoor, long n, long m, const NTL::ZZ &module,
-                                      const NTL::ZZ &bound);
+        static void _generateTrapdoor(NTL::mat_ZZ &A, NTL::mat_ZZ &trapdoor, const long n, const long m,
+                                      const NTL::ZZ &module, const NTL::ZZ &bound);
 
         static void _preSample(NTL::vec_ZZ &x, const NTL::mat_ZZ &trapdoor, const NTL::mat_ZZ &A, const NTL::vec_ZZ &b,
                                const NTL::ZZ &bound);
@@ -61,9 +61,11 @@ namespace MyEncryption {
         static void _hash(NTL::vec_ZZ &hash, const NTL::mat_ZZ &A);
 
     public:
-        void setup(MyFramework::Encryption::Params *&params, long securityParameter, NTL::ZZ plainBound) override;
+        void setup(const MyFramework::Encryption::Params *params, const long securityParameter,
+                   const NTL::ZZ plainBound) override;
 
-        void generateKey(MyFramework::Encryption::KeyPair *&key, const MyFramework::Encryption::Params *params) override;
+        void generateKey(const MyFramework::Encryption::KeyPair *key,
+                         const MyFramework::Encryption::Params *params) override;
 
         bool verifyKey(const MyFramework::Encryption::Params *params,
                        const MyFramework::Encryption::PublicKey *publicKey,
@@ -80,44 +82,48 @@ namespace MyEncryption {
                                                   const MyFramework::Encryption::PublicKey *publicKey,
                                                   const NTL::vec_ZZ &cipherValues) override;
 
-        void decrypt(MyFramework::Encryption::DecryptionProof *&proof, const MyFramework::Encryption::Params *params,
+        void decrypt(const MyFramework::Encryption::DecryptionProof *proof,
+                     const MyFramework::Encryption::Params *params,
                      const MyFramework::Encryption::PublicKey *publicKey,
-                     const MyFramework::Encryption::PrivateKey *privateKey, const NTL::vec_ZZ &cipherValues) override;
+                     const MyFramework::Encryption::PrivateKey *privateKey,
+                     const NTL::vec_ZZ &cipherValues) override;
 
         bool verifyDecryption(const MyFramework::Encryption::Params *params,
-                              const MyFramework::Encryption::PublicKey *publicKey, const NTL::vec_ZZ &cipherValues,
+                              const MyFramework::Encryption::PublicKey *publicKey,
+                              const NTL::vec_ZZ &cipherValues,
                               const MyFramework::Encryption::DecryptionProof *proof) override;
     };
 
-    class EncryptionType2 final : MyFramework::Encryption::EncryptionSystem {
-    public:
-        void setup(MyFramework::Encryption::Params *&params, long securityParameter, NTL::ZZ plainBound) override;
-
-        void generateKey(MyFramework::Encryption::KeyPair *&key, const MyFramework::Encryption::Params *params) override;
-
-        bool verifyKey(const MyFramework::Encryption::Params *params,
-                       const MyFramework::Encryption::PublicKey *publicKey,
-                       const MyFramework::Encryption::KeyProof *proof) override;
-
-        void generateEncryptionFunctionFromInput(NTL::mat_ZZ &f1, NTL::mat_ZZ &f2,
-                                                 const MyFramework::Encryption::Params *params,
-                                                 const MyFramework::Encryption::PublicKey *publicKey,
-                                                 const NTL::vec_ZZ &plainValues,
-                                                 const NTL::vec_ZZ &randomValues) override;
-
-        void generateEncryptionFunctionFromOutput(NTL::mat_ZZ &f1, NTL::mat_ZZ &f2,
-                                                  const MyFramework::Encryption::Params *params,
-                                                  const MyFramework::Encryption::PublicKey *publicKey,
-                                                  const NTL::vec_ZZ &cipherValues) override;
-
-        void decrypt(MyFramework::Encryption::DecryptionProof *&proof, const MyFramework::Encryption::Params *params,
-                     const MyFramework::Encryption::PublicKey *public_key,
-                     const MyFramework::Encryption::PrivateKey *privateKey, const NTL::vec_ZZ &cipherValues) override;
-
-        bool verifyDecryption(const MyFramework::Encryption::Params *params,
-                              const MyFramework::Encryption::PublicKey *publicKey, const NTL::vec_ZZ &cipherValues,
-                              const MyFramework::Encryption::DecryptionProof *proof) override;
-    };
+    // class EncryptionType2 final : MyFramework::Encryption::EncryptionSystem {
+    // public:
+    //     void setup(MyFramework::Encryption::Params *&params, long securityParameter, NTL::ZZ plainBound) override;
+    //
+    //     void generateKey(MyFramework::Encryption::KeyPair *&key,
+    //                      const MyFramework::Encryption::Params *params) override;
+    //
+    //     bool verifyKey(const MyFramework::Encryption::Params *params,
+    //                    const MyFramework::Encryption::PublicKey *publicKey,
+    //                    const MyFramework::Encryption::KeyProof *proof) override;
+    //
+    //     void generateEncryptionFunctionFromInput(NTL::mat_ZZ &f1, NTL::mat_ZZ &f2,
+    //                                              const MyFramework::Encryption::Params *params,
+    //                                              const MyFramework::Encryption::PublicKey *publicKey,
+    //                                              const NTL::vec_ZZ &plainValues,
+    //                                              const NTL::vec_ZZ &randomValues) override;
+    //
+    //     void generateEncryptionFunctionFromOutput(NTL::mat_ZZ &f1, NTL::mat_ZZ &f2,
+    //                                               const MyFramework::Encryption::Params *params,
+    //                                               const MyFramework::Encryption::PublicKey *publicKey,
+    //                                               const NTL::vec_ZZ &cipherValues) override;
+    //
+    //     void decrypt(MyFramework::Encryption::DecryptionProof *&proof, const MyFramework::Encryption::Params *params,
+    //                  const MyFramework::Encryption::PublicKey *public_key,
+    //                  const MyFramework::Encryption::PrivateKey *privateKey, const NTL::vec_ZZ &cipherValues) override;
+    //
+    //     bool verifyDecryption(const MyFramework::Encryption::Params *params,
+    //                           const MyFramework::Encryption::PublicKey *publicKey, const NTL::vec_ZZ &cipherValues,
+    //                           const MyFramework::Encryption::DecryptionProof *proof) override;
+    // };
 }
 
 namespace MyVectorCommitment {
@@ -152,16 +158,16 @@ namespace MyVectorCommitment {
                                const NTL::ZZ &bound);
 
     public:
-        void setup(MyFramework::VC::Params *&params, long securityParameter, long firstInputSize, long secondInputSize,
-                   long outputSize, NTL::ZZ firstInputBound, NTL::ZZ secondInputBound,
-                   NTL::ZZ coefficientBound) override;
+        void setup(const MyFramework::VC::Params *params, const long securityParameter, const long firstInputSize,
+                   const long secondInputSize, const long outputSize, const NTL::ZZ firstInputBound,
+                   const NTL::ZZ secondInputBound, const NTL::ZZ coefficientBound) override;
 
-        void commit(MyFramework::VC::Commitment *&commitment, MyFramework::VC::Auxiliary *&auxiliary,
+        void commit(const MyFramework::VC::Commitment *commitment, const MyFramework::VC::Auxiliary *auxiliary,
                     const MyFramework::VC::Params *params, const NTL::vec_ZZ &firstInput,
                     const NTL::vec_ZZ &secondInput) override;
 
-        void open(MyFramework::VC::OpeningProof *&proof, const MyFramework::VC::Params *params,
-                  MyFramework::VC::Auxiliary *auxiliary, const NTL::mat_ZZ &openingFunction1,
+        void open(const MyFramework::VC::OpeningProof *proof, const MyFramework::VC::Params *params,
+                  const MyFramework::VC::Auxiliary *auxiliary, const NTL::mat_ZZ &openingFunction1,
                   const NTL::mat_ZZ &openingFunction2) override;
 
         bool verify(const MyFramework::VC::Params *params, const NTL::mat_ZZ &openingFunction1,
