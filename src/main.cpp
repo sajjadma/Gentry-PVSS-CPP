@@ -52,6 +52,7 @@ int main(int argc, char** argv) {
 
 
     cout << "Start" << endl;
+    int n = 1;
     MyFramework::PVSS pvss(
         make_unique<MyEncryption::EncryptionType1>(),
         make_unique<MyVectorCommitment::VectorCommitmentType2>()
@@ -59,11 +60,11 @@ int main(int argc, char** argv) {
     MyFramework::Params params;
     params.encryptionParams = new MyEncryption::EncryptionType1::MyParams();
     params.vcParams = new MyVectorCommitment::VectorCommitmentType2::MyParams();
-    pvss.setup(params, 1, 5, 3);
+    pvss.setup(params, 1, n, n/2 + 1);
     cout << "Finish Setup" << endl;
 
 
-    MyFramework::Encryption::KeyPair keyPair[5];
+    MyFramework::Encryption::KeyPair keyPair[n];
     vector<MyFramework::Encryption::PublicKey *> pks;
     for (auto &key: keyPair) {
         key.privateKey = new MyEncryption::EncryptionType1::MyPrivateKey();
@@ -73,7 +74,7 @@ int main(int argc, char** argv) {
         pks.push_back(key.publicKey);
     }
 
-    cout << "verifyKey: " << pvss.verifyKey(params, keyPair[2].publicKey, keyPair[2].proof) << endl;
+    cout << "verifyKey: " << pvss.verifyKey(params, keyPair[n-1].publicKey, keyPair[n-1].proof) << endl;
 
 
     MyFramework::DistributionProof proof;
@@ -87,12 +88,12 @@ int main(int argc, char** argv) {
     MyFramework::DecryptionProof decrypt;
     decrypt.proof = new MyEncryption::EncryptionType1::MyDecryptionProof();
     vector<NTL::ZZ> sh;
-    for (int i = 0; i < sizeof(keyPair); i++) {
+    for (int i = 0; i < n; i++) {
         pvss.decryptShare(decrypt,params,keyPair[i].publicKey,keyPair[i].privateKey,proof.encryptedShares[i]);
         sh.push_back(decrypt.decryptedShare);
     }
 
-    cout << "verifyDecryption: " << pvss.verifyDecryption(params, pks.back(), proof.encryptedShares.back(), decrypt) << endl;
+    cout << "verifyDecryption: " << pvss.verifyDecryption(params, pks[n-1], proof.encryptedShares[n-1], decrypt) << endl;
 
 
     pvss.reconstruct(decrypt.decryptedShare, params, sh);

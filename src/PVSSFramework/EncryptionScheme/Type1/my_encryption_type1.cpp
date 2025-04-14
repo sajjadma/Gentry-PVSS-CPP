@@ -337,7 +337,7 @@ namespace MyEncryption {
         const NTL::ZZ bound = myParams->module / 2;
         // TODO: If param.d changes 2 must change too
         NTL::ZZ pow = myParams->module / 2;
-        for (long i = myParams->d - 1; i >= 0; i++) {
+        for (long i = myParams->d - 1; i >= 0; i--) {
             if (((tmpM[i] - pow * myProof->decryptedValues[0]) % myParams->module) > bound) {
                 myProof->decryptedValues[0] += bound / pow;
             }

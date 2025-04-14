@@ -146,7 +146,7 @@ namespace MyFramework {
             }
         }
 
-        VC::Auxiliary *auxiliary;
+        VC::Auxiliary *auxiliary = new MyVectorCommitment::VectorCommitmentType2::MyAuxiliary();
         this->vectorCommitmentSystem->commit(proof.commitment, auxiliary, params.vcParams, firstInput, secondInput);
         this->vectorCommitmentSystem->open(proof.proof, params.vcParams, auxiliary, M1, M2);
     }
@@ -161,12 +161,12 @@ namespace MyFramework {
 
         long outputIndex = 0;
         for (long i = 0; i < params.numberOfParties; i++) {
+            if (proof.proof->output[outputIndex] != 0) {
+                cout << "Wrong output dist verify: (" << outputIndex << ") " << proof.proof->output[outputIndex] << endl;
+            }
+
             M1.put(outputIndex, 0, NTL::to_ZZ(1));
             for (long j = 1; j < params.threshold + 1; j++) {
-                if (proof.proof->output[outputIndex] != 0) {
-                    return false;
-                }
-
                 M1.put(outputIndex, j, ((i + 1) * M1[outputIndex][j - 1]) % params.prime);
             }
 
@@ -184,7 +184,7 @@ namespace MyFramework {
             for (long j = 0; j < params.encryptionParams->cipherSize; j++) {
                 outputIndex++;
                 if (proof.proof->output[outputIndex] != proof.encryptedShares[i][j]) {
-                    return false;
+                    cout << "Wrong output dist verify: (" << outputIndex << ") " << proof.proof->output[outputIndex] << endl;
                 }
 
                 for (long k = 0; k < params.encryptionParams->plainSize; k++) {

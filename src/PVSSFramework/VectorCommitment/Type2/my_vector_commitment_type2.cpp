@@ -280,8 +280,8 @@ namespace MyVectorCommitment {
         const auto myProof = (MyOpeningProof *) proof;
         const auto myParams = (MyParams *) params;
         const auto myAuxiliary = (MyAuxiliary *) auxiliary;
-        MyFramework::VC::Commitment *_commitmentTmp;
-        MyFramework::VC::Auxiliary *_auxiliaryTmp;
+        MyFramework::VC::Commitment *_commitmentTmp = new MyCommitment();
+        MyFramework::VC::Auxiliary *_auxiliaryTmp = new MyAuxiliary();
         myProof->pi.SetLength(myParams->l);
         myProof->pi_eq.SetLength(myParams->l);
         myProof->pi_ip.SetLength(myParams->l);
