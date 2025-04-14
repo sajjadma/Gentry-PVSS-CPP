@@ -32,8 +32,6 @@ namespace MyEncryption {
     void EncryptionType1::_generateTrapdoor(NTL::mat_ZZ &A, NTL::mat_ZZ &trapdoor, const long n, const long m,
                                             const NTL::ZZ &module, const NTL::ZZ &bound) {
         const long k = NTL::NumBits(module);
-        if (m < n * k) throw std::invalid_argument("EncryptionType1::_generateTrapdoor");
-
         const long _n = n * k;
         const long _m = m - _n;
 
@@ -78,8 +76,6 @@ namespace MyEncryption {
                                      const NTL::vec_ZZ &b, const NTL::ZZ &bound) {
         const long n = A.NumRows(), m = trapdoor.NumCols();
         const long k = m / n;
-        if (b.length() != n || trapdoor.NumRows() != n || m != n * k)
-            throw std::invalid_argument("EncryptionType1::_preSample");
 
         NTL::vec_ZZ y;
         y.SetLength(m);
@@ -128,7 +124,7 @@ namespace MyEncryption {
         const auto myParams = (MyParams *) params;
         const long k = NTL::NumBits(plainBound);
         myParams->module = NTL::power2_ZZ(k);
-        myParams->l = k; // TODO: یا هر مقدار مناسب دیگر
+        myParams->l = 8; // TODO: یا هر مقدار مناسب دیگر
         myParams->m = 2 * myParams->l * k;
         myParams->d = k; // TODO: یا هر مقدار مناسب دیگر
         myParams->randomBound = NTL::power2_ZZ(k / 2 - 2);

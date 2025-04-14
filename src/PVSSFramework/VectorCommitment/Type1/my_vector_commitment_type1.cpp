@@ -33,8 +33,6 @@ namespace MyVectorCommitment {
     void VectorCommitmentType1::_generateTrapdoor(NTL::mat_ZZ &A, NTL::mat_ZZ &trapdoor, const long n, const long m,
                                                   const NTL::ZZ &module, const NTL::ZZ &bound) {
         const long k = NTL::NumBits(module);
-        if (m < n * k) throw std::invalid_argument("EncryptionType1::_generateTrapdoor");
-
         const long _n = n * k;
         const long _m = m - _n;
 
@@ -79,8 +77,6 @@ namespace MyVectorCommitment {
                                            const NTL::vec_ZZ &b, const NTL::ZZ &bound) {
         const long n = A.NumRows(), m = trapdoor.NumCols();
         const long k = m / n;
-        if (b.length() != n || trapdoor.NumRows() != n || m != n * k)
-            throw std::invalid_argument("EncryptionType1::_preSample");
 
         NTL::vec_ZZ y;
         y.SetLength(m);
@@ -127,7 +123,7 @@ namespace MyVectorCommitment {
         myParams->h2.SetLength(myParams->secondInputSize);
         myParams->u.SetDims(myParams->firstInputSize + myParams->secondInputSize,
                             myParams->firstInputSize + myParams->secondInputSize);
-        myParams->n = 16 * k;
+        myParams->n = 8;
         myParams->l = 32 * myParams->n * k;
         myParams->p = NTL::power2_ZZ(4 * k);
         myParams->q = NTL::power2_ZZ(16 * k);

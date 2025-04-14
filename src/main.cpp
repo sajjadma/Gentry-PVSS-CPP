@@ -49,15 +49,15 @@ int main(int argc, char** argv) {
         make_unique<MyVectorCommitment::VectorCommitmentType1>()
     );
     MyFramework::Params params;
-    params.encryptionParams = new MyEncryption::MyParams();
+    params.encryptionParams = new MyEncryption::EncryptionType1::MyParams();
     params.vcParams = new MyVectorCommitment::MyParams();
-    pvss.setup(params, 1, 5, 3);
+    pvss.setup(params, 1, 1, 1);
 
     MyFramework::Encryption::KeyPair keyPair[5];
     for (auto &key: keyPair) {
-        key.privateKey = new MyEncryption::MyPrivateKey();
-        key.publicKey = new MyEncryption::MyPublicKey();
-        key.proof = new MyEncryption::MyKeyProof();
+        key.privateKey = new MyEncryption::EncryptionType1::MyPrivateKey();
+        key.publicKey = new MyEncryption::EncryptionType1::MyPublicKey();
+        key.proof = new MyEncryption::EncryptionType1::MyKeyProof();
         pvss.generateKey(key, params);
     }
 
