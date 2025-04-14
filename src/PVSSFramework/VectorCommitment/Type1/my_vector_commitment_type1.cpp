@@ -135,25 +135,23 @@ namespace MyVectorCommitment {
         myParams.t.SetLength(myParams.n);
 
         for (long i = 0; i < myParams.firstInputSize; i++) {
-            while (true) {
-                try {
-                    v1Inv[i] = NTL::RandomBnd(myParams.q);
-                    NTL::InvMod(myParams.v1[i], v1Inv[i], myParams.q);
-                    break;
-                } catch (...) {
-                }
-            }
+            NTL::ZZ tmp;
+            do {
+                tmp = NTL::RandomBnd(myParams.q);
+            } while (NTL::GCD(tmp, myParams.q) != 1);
+
+            v1Inv[i] = tmp;
+            NTL::InvMod(myParams.v1[i], tmp, myParams.q);
         }
 
         for (long i = 0; i < myParams.secondInputSize; i++) {
-            while (true) {
-                try {
-                    v2Inv[i] = NTL::RandomBnd(myParams.p);
-                    NTL::InvMod(myParams.v2[i], v2Inv[i], myParams.q);
-                    break;
-                } catch (...) {
-                }
-            }
+            NTL::ZZ tmp;
+            do {
+                tmp = NTL::RandomBnd(myParams.p);
+            } while (NTL::GCD(tmp, myParams.q) != 1);
+
+            v2Inv[i] = tmp;
+            NTL::InvMod(myParams.v2[i], tmp, myParams.q);
         }
 
         for (long i = 0; i < myParams.outputSize; i++) {

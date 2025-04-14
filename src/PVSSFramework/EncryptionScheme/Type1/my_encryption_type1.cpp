@@ -125,12 +125,12 @@ namespace MyEncryption {
     // TODO: Set Parameters Properly
     void EncryptionType1::setup(MyFramework::Encryption::Params *&params, long securityParameter, NTL::ZZ plainBound) {
         MyParams myParams;
-        myParams.module = NTL::power2_ZZ(NTL::NextPowerOfTwo(to_long(plainBound)));
         const long k = NTL::NumBits(plainBound);
+        myParams.module = NTL::power2_ZZ(k);
         myParams.l = k; // TODO: یا هر مقدار مناسب دیگر
         myParams.m = 2 * myParams.l * k;
         myParams.d = k; // TODO: یا هر مقدار مناسب دیگر
-        myParams.randomBound = NTL::SqrRoot(myParams.module) / 4;
+        myParams.randomBound = NTL::power2_ZZ(k / 2 - 2);
         myParams.plainBound = myParams.module;
         myParams.coefficientBound = myParams.module;
         myParams.plainSize = 1;
