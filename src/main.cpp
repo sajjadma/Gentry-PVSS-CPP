@@ -64,13 +64,13 @@ int main(int argc, char** argv) {
 
 
     MyFramework::Encryption::KeyPair keyPair[5];
-    vector<MyFramework::Encryption::PublicKey *> pk;
+    vector<MyFramework::Encryption::PublicKey *> pks;
     for (auto &key: keyPair) {
         key.privateKey = new MyEncryption::EncryptionType1::MyPrivateKey();
         key.publicKey = new MyEncryption::EncryptionType1::MyPublicKey();
         key.proof = new MyEncryption::EncryptionType1::MyKeyProof();
         pvss.generateKey(key, params);
-        pk.push_back(key.publicKey);
+        pks.push_back(key.publicKey);
     }
 
     cout << "verifyKey: " << pvss.verifyKey(params, keyPair[2].publicKey, keyPair[2].proof) << endl;
@@ -79,9 +79,9 @@ int main(int argc, char** argv) {
     MyFramework::DistributionProof proof;
     proof.commitment = new MyVectorCommitment::VectorCommitmentType2::MyCommitment();
     proof.proof = new MyVectorCommitment::VectorCommitmentType2::MyOpeningProof();
-    pvss.distribute(proof, params, pk, NTL::to_ZZ(5));
+    pvss.distribute(proof, params, pks, NTL::to_ZZ(5));
 
-    cout << "verifyDistribution: " << pvss.verifyDistribution(params, pk, proof) << endl;
+    cout << "verifyDistribution: " << pvss.verifyDistribution(params, pks, proof) << endl;
 
 
     MyFramework::DecryptionProof decrypt;
@@ -92,7 +92,7 @@ int main(int argc, char** argv) {
         sh.push_back(decrypt.decryptedShare);
     }
 
-    cout << "verifyDecryption: " << pvss.verifyDecryption(params, pk.back(), proof.encryptedShares.back(), decrypt) << endl;
+    cout << "verifyDecryption: " << pvss.verifyDecryption(params, pks.back(), proof.encryptedShares.back(), decrypt) << endl;
 
 
     pvss.reconstruct(decrypt.decryptedShare, params, sh);
