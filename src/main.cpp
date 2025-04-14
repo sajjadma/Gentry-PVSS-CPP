@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
     // vc.setup(vcParams, 1, 2, 4, 8, prime, bound, prime);
 
 
-    cout << "Start";
+    cout << "Start" << endl;
     MyFramework::PVSS pvss(
         make_unique<MyEncryption::EncryptionType1>(),
         make_unique<MyVectorCommitment::VectorCommitmentType2>()
@@ -60,17 +60,44 @@ int main(int argc, char** argv) {
     params.encryptionParams = new MyEncryption::EncryptionType1::MyParams();
     params.vcParams = new MyVectorCommitment::VectorCommitmentType2::MyParams();
     pvss.setup(params, 1, 5, 3);
-    cout << "Finish Setup";
+    cout << "Finish Setup" << endl;
+
 
     MyFramework::Encryption::KeyPair keyPair[5];
+    vector<MyFramework::Encryption::PublicKey *> pk;
     for (auto &key: keyPair) {
         key.privateKey = new MyEncryption::EncryptionType1::MyPrivateKey();
         key.publicKey = new MyEncryption::EncryptionType1::MyPublicKey();
         key.proof = new MyEncryption::EncryptionType1::MyKeyProof();
         pvss.generateKey(key, params);
+        pk.push_back(key.publicKey);
     }
 
-    cout << pvss.verifyKey(params, keyPair[2].publicKey, keyPair[2].proof);
+    cout << "verifyKey: " << pvss.verifyKey(params, keyPair[2].publicKey, keyPair[2].proof) << endl;
+
+
+    MyFramework::DistributionProof proof;
+    proof.commitment = new MyVectorCommitment::VectorCommitmentType2::MyCommitment();
+    proof.proof = new MyVectorCommitment::VectorCommitmentType2::MyOpeningProof();
+    pvss.distribute(proof, params, pk, NTL::to_ZZ(5));
+
+    cout << "verifyDistribution: " << pvss.verifyDistribution(params, pk, proof) << endl;
+
+
+    MyFramework::DecryptionProof decrypt;
+    decrypt.proof = new MyEncryption::EncryptionType1::MyDecryptionProof();
+    vector<NTL::ZZ> sh;
+    for (int i = 0; i < sizeof(keyPair); i++) {
+        pvss.decryptShare(decrypt,params,keyPair[i].publicKey,keyPair[i].privateKey,proof.encryptedShares[i]);
+        sh.push_back(decrypt.decryptedShare);
+    }
+
+    cout << "verifyDecryption: " << pvss.verifyDecryption(params, pk.back(), proof.encryptedShares.back(), decrypt) << endl;
+
+
+    pvss.reconstruct(decrypt.decryptedShare, params, sh);
+
+    cout << decrypt.decryptedShare;
 
 
     return 0;
