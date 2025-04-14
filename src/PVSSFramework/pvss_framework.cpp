@@ -255,5 +255,5 @@ namespace MyFramework {
         reconstruction = NTL::rep(NTL::eval(f, NTL::ZZ_p::zero()));
     }
 
-    template class PVSS<MyEncryption::EncryptionType1, MyVectorCommitment::VectorCommitmentType1>;
+    template class PVSS<MyEncryption::EncryptionType1, MyVectorCommitment::VectorCommitmentType2>;
 }

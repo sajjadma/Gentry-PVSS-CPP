@@ -44,14 +44,23 @@ using namespace REGEVENC;
 
 int main(int argc, char** argv) {
     // std::cout << "- Found GMP version "<<__GNU_MP__ <<std::endl;
+    // MyVectorCommitment::VectorCommitmentType1 vc;
+    // MyFramework::VC::Params *vcParams = new MyVectorCommitment::VectorCommitmentType1::MyParams();
+    // NTL::ZZ prime = NTL::conv<NTL::ZZ>("27742317777372353535851937790883648493");
+    // NTL::ZZ bound = NTL::power2_ZZ(8);
+    // vc.setup(vcParams, 1, 2, 4, 8, prime, bound, prime);
+
+
+    cout << "Start";
     MyFramework::PVSS pvss(
         make_unique<MyEncryption::EncryptionType1>(),
         make_unique<MyVectorCommitment::VectorCommitmentType1>()
     );
     MyFramework::Params params;
     params.encryptionParams = new MyEncryption::EncryptionType1::MyParams();
-    params.vcParams = new MyVectorCommitment::MyParams();
-    pvss.setup(params, 1, 1, 1);
+    params.vcParams = new MyVectorCommitment::VectorCommitmentType1::MyParams();
+    pvss.setup(params, 1, 5, 3);
+    cout << "Finish Setup";
 
     MyFramework::Encryption::KeyPair keyPair[5];
     for (auto &key: keyPair) {
@@ -63,6 +72,8 @@ int main(int argc, char** argv) {
 
     cout << pvss.verifyKey(params, keyPair[2].publicKey, keyPair[2].proof);
 
+
+    return 0;
     // std::cout << "- Found NTL version "<<NTL_VERSION <<std::endl;
     // std::cout << "- Found Sodium version "<<SODIUM_VERSION_STRING<<std::endl;
 
