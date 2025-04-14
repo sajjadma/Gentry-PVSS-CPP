@@ -54,11 +54,11 @@ int main(int argc, char** argv) {
     cout << "Start";
     MyFramework::PVSS pvss(
         make_unique<MyEncryption::EncryptionType1>(),
-        make_unique<MyVectorCommitment::VectorCommitmentType1>()
+        make_unique<MyVectorCommitment::VectorCommitmentType2>()
     );
     MyFramework::Params params;
     params.encryptionParams = new MyEncryption::EncryptionType1::MyParams();
-    params.vcParams = new MyVectorCommitment::VectorCommitmentType1::MyParams();
+    params.vcParams = new MyVectorCommitment::VectorCommitmentType2::MyParams();
     pvss.setup(params, 1, 5, 3);
     cout << "Finish Setup";
 
