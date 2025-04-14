@@ -119,8 +119,8 @@ namespace MyVectorCommitment {
         myParams->v2.SetLength(myParams->secondInputSize);
         myParams->h.SetLength(myParams->outputSize);
         myParams->h2.SetLength(myParams->secondInputSize);
-        myParams->u.SetDims(myParams->firstInputSize + myParams->secondInputSize,
-                            myParams->firstInputSize + myParams->secondInputSize);
+        myParams->u.SetDims(myParams->firstInputSize + 3,//myParams->secondInputSize,
+                            myParams->firstInputSize + 3);//myParams->secondInputSize);
         myParams->n = 8;
         myParams->l = 32 * myParams->n * k;
         myParams->p = NTL::power2_ZZ(4 * k);
@@ -177,6 +177,7 @@ namespace MyVectorCommitment {
         for (long i = 0; i < myParams->firstInputSize; i++) {
             for (long j = 0; j < myParams->firstInputSize; j++) {
                 if (i > 2 || j > 2) {
+                    continue;
                     myParams->u[i][j] = myParams->u[i % 3][j % 3];
                     continue;
                 }
@@ -185,6 +186,7 @@ namespace MyVectorCommitment {
             }
             for (long j = 0; j < myParams->secondInputSize; j++) {
                 if (i > 2 || j > 2) {
+                    continue;
                     myParams->u[i][j + myParams->firstInputSize] =
                             myParams->u[i % 3][(j % 3) + myParams->firstInputSize];
                     continue;
@@ -197,6 +199,7 @@ namespace MyVectorCommitment {
         for (long i = 0; i < myParams->secondInputSize; i++) {
             for (long j = 0; j < myParams->firstInputSize; j++) {
                 if (i > 2 || j > 2) {
+                    continue;
                     myParams->u[i + myParams->firstInputSize][j] =
                             myParams->u[(i % 3) + myParams->firstInputSize][j % 3];
                     continue;
@@ -206,6 +209,7 @@ namespace MyVectorCommitment {
             }
             for (long j = 0; j < myParams->secondInputSize; j++) {
                 if (i > 2 || j > 2) {
+                    continue;
                     myParams->u[i + myParams->firstInputSize][j + myParams->firstInputSize] =
                             myParams->u[(i % 3) + myParams->firstInputSize][(j % 3) + myParams->firstInputSize];
                     continue;
@@ -237,12 +241,12 @@ namespace MyVectorCommitment {
             myAuxiliary->u1[i].SetLength(myParams->l);
             for (long j = 0; j < myParams->firstInputSize; j++) {
                 if (j == i) continue;
-                myAuxiliary->u1[i] += firstInput[j] * (myParams->isComplement ? myParams->u[i][j] : myParams->u[j][i]);
+                myAuxiliary->u1[i] += firstInput[j] * (myParams->isComplement ? myParams->u[i % 3][j % 3] : myParams->u[j%3][i%3]);
             }
             for (long j = 0; j < myParams->secondInputSize; j++) {
                 myAuxiliary->u1[i] += secondInput[j] * (myParams->isComplement
-                                                            ? myParams->u[i][j + myParams->firstInputSize]
-                                                            : myParams->u[j + myParams->firstInputSize][i]);
+                                                            ? myParams->u[i%3][(j%3) + myParams->firstInputSize]
+                                                            : myParams->u[(j%3) + myParams->firstInputSize][i%3]);
             }
         }
 
@@ -257,15 +261,15 @@ namespace MyVectorCommitment {
             myAuxiliary->u2[i].SetLength(myParams->l);
             for (long j = 0; j < myParams->firstInputSize; j++) {
                 myAuxiliary->u2[i] += firstInput[j] * (myParams->isComplement
-                                                           ? myParams->u[i + myParams->firstInputSize][j]
-                                                           : myParams->u[j][i + myParams->firstInputSize]);
+                                                           ? myParams->u[(i%3) + myParams->firstInputSize][j%3]
+                                                           : myParams->u[j%3][(i%3) + myParams->firstInputSize]);
             }
             for (long j = 0; j < myParams->secondInputSize; j++) {
                 if (j == i) continue;
                 myAuxiliary->u2[i] += secondInput[j] *
                 (myParams->isComplement
-                     ? myParams->u[i + myParams->firstInputSize][j + myParams->firstInputSize]
-                     : myParams->u[j + myParams->firstInputSize][i + myParams->firstInputSize]);
+                     ? myParams->u[(i%3) + myParams->firstInputSize][(j%3) + myParams->firstInputSize]
+                     : myParams->u[(j%3) + myParams->firstInputSize][(i%3) + myParams->firstInputSize]);
             }
         }
     }
@@ -313,7 +317,7 @@ namespace MyVectorCommitment {
         for (long i = 0; i < myParams->secondInputSize; i++) {
             for (long j = 0; j < myParams->secondInputSize; j++) {
                 if (i == j) continue;
-                myProof->pi_ip += myAuxiliary->x2[i] * (x2[j] - myParams->h2[j]) * myParams->u[i][j];
+                myProof->pi_ip += myAuxiliary->x2[i] * (x2[j] - myParams->h2[j]) * myParams->u[(i%3) + myParams->firstInputSize][(j%3) + myParams->firstInputSize];
             }
         }
     }
