@@ -28,6 +28,8 @@
 #include <cmath>
 #include <random>
 #include <chrono>
+#include <my_implementation.hpp>
+#include <pvss_framework.hpp>
 #include <string>
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -42,6 +44,25 @@ using namespace REGEVENC;
 
 int main(int argc, char** argv) {
     // std::cout << "- Found GMP version "<<__GNU_MP__ <<std::endl;
+    MyFramework::PVSS pvss(
+        make_unique<MyEncryption::EncryptionType1>(),
+        make_unique<MyVectorCommitment::VectorCommitmentType1>()
+    );
+    MyFramework::Params params;
+    params.encryptionParams = new MyEncryption::MyParams();
+    params.vcParams = new MyVectorCommitment::MyParams();
+    pvss.setup(params, 1, 5, 3);
+
+    MyFramework::Encryption::KeyPair keyPair[5];
+    for (auto &key: keyPair) {
+        key.privateKey = new MyEncryption::MyPrivateKey();
+        key.publicKey = new MyEncryption::MyPublicKey();
+        key.proof = new MyEncryption::MyKeyProof();
+        pvss.generateKey(key, params);
+    }
+
+    cout << pvss.verifyKey(params, keyPair[2].publicKey, keyPair[2].proof);
+
     // std::cout << "- Found NTL version "<<NTL_VERSION <<std::endl;
     // std::cout << "- Found Sodium version "<<SODIUM_VERSION_STRING<<std::endl;
 
