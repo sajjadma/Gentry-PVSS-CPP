@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
 
 
     cout << "Start" << endl;
-    int n = 1;
+    int n = 5;
     MyFramework::PVSS pvss(
         make_unique<MyEncryption::EncryptionType1>(),
         make_unique<MyVectorCommitment::VectorCommitmentType2>()

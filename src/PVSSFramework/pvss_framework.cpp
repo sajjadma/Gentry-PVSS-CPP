@@ -140,7 +140,7 @@ namespace MyFramework {
                                l == 0
                                    ? f2[j][k]
                                    : f2[j][k] * params.vcParams->secondInputBound *
-                                     M1[outputIndex][index - 1]);
+                                     M2[outputIndex][index - 1]);
                     }
                 }
             }
