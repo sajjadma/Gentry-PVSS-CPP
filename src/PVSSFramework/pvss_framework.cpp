@@ -24,7 +24,6 @@
 
 #include <my_implementation.hpp>
 #include <pvss_framework.hpp>
-#include <NTL/xdouble.h>
 #include <NTL/ZZ_pX.h>
 
 using namespace std;
@@ -34,6 +33,9 @@ namespace MyFramework {
     void PVSS<EncryptionType, VectorCommitmentType>::setup(Params &params, const long securityParameter,
                                                            const long numberOfParties,
                                                            const long threshold) {
+        auto start = chrono::steady_clock::now();
+        cout << "PVSS Setup starts" << endl;
+
         params.numberOfParties = numberOfParties;
         params.threshold = threshold;
 
@@ -52,24 +54,46 @@ namespace MyFramework {
                                             params.encryptionParams->coefficientBound > params.prime
                                                 ? params.encryptionParams->coefficientBound
                                                 : params.prime);
+
+        auto end = chrono::steady_clock::now();
+        auto ticks = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+        cout << "PVSS Setup ends. time: " << ticks << "ms" << endl;
     }
 
     template<typename EncryptionType, typename VectorCommitmentType>
     void PVSS<EncryptionType, VectorCommitmentType>::generateKey(Encryption::KeyPair &key, const Params &params) {
+        auto start = chrono::steady_clock::now();
+        cout << "PVSS KeyGen starts" << endl;
+
         this->encryptionSystem->generateKey(&key, params.encryptionParams);
+
+        auto end = chrono::steady_clock::now();
+        auto ticks = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+        cout << "PVSS KeyGen ends. time: " << ticks << "ms" << endl;
     }
 
     template<typename EncryptionType, typename VectorCommitmentType>
     bool PVSS<EncryptionType, VectorCommitmentType>::verifyKey(const Params &params,
                                                                const Encryption::PublicKey *publicKey,
                                                                const Encryption::KeyProof *proof) {
-        return this->encryptionSystem->verifyKey(params.encryptionParams, publicKey, proof);
+        auto start = chrono::steady_clock::now();
+        cout << "PVSS verifyKey starts" << endl;
+
+        bool result = this->encryptionSystem->verifyKey(params.encryptionParams, publicKey, proof);
+
+        auto end = chrono::steady_clock::now();
+        auto ticks = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+        cout << "PVSS verifyKey ends. time: " << ticks << "ms" << endl;
+        return result;
     }
 
     template<typename EncryptionType, typename VectorCommitmentType>
     void PVSS<EncryptionType, VectorCommitmentType>::distribute(DistributionProof &proof, const Params &params,
                                                                 const vector<Encryption::PublicKey *> &publicKeys,
                                                                 const NTL::ZZ &secret) {
+        auto start = chrono::steady_clock::now();
+        cout << "PVSS Dist starts" << endl;
+
         NTL::vec_ZZ firstInput, secondInput;
         firstInput.SetLength(params.vcParams->firstInputSize);
         secondInput.SetLength(params.vcParams->secondInputSize);
@@ -119,11 +143,18 @@ namespace MyFramework {
                 }
             }
 
+            auto start1 = chrono::steady_clock::now();
+            cout << "Enc Encrypt starts" << endl;
+
             NTL::mat_ZZ f1, f2;
             this->encryptionSystem->generateEncryptionFunctionFromInput(f1, f2, params.encryptionParams, publicKeys[i],
                                                                         encodedShare, r);
 
             proof.encryptedShares.push_back(f1 * encodedShare + f2 * r);
+
+            auto end1 = chrono::steady_clock::now();
+            auto ticks1 = chrono::duration_cast<chrono::milliseconds>(end1 - start1).count();
+            cout << "Enc Encrypt ends. time: " << ticks1 << "ms" << endl;
 
             for (long j = 0; j < params.encryptionParams->cipherSize; j++) {
                 outputIndex++;
@@ -149,12 +180,19 @@ namespace MyFramework {
         VC::Auxiliary *auxiliary = new MyVectorCommitment::VectorCommitmentType2::MyAuxiliary();
         this->vectorCommitmentSystem->commit(proof.commitment, auxiliary, params.vcParams, firstInput, secondInput);
         this->vectorCommitmentSystem->open(proof.proof, params.vcParams, auxiliary, M1, M2);
+
+        auto end = chrono::steady_clock::now();
+        auto ticks = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+        cout << "PVSS Dist ends. time: " << ticks << "ms" << endl;
     }
 
     template<typename EncryptionType, typename VectorCommitmentType>
     bool PVSS<EncryptionType, VectorCommitmentType>::verifyDistribution(
         const Params &params, const vector<Encryption::PublicKey *> &publicKeys,
         const DistributionProof &proof) {
+        auto start = chrono::steady_clock::now();
+        cout << "PVSS VerifyDist starts" << endl;
+
         NTL::mat_ZZ M1, M2;
         M1.SetDims(params.vcParams->outputSize, params.vcParams->firstInputSize);
         M2.SetDims(params.vcParams->outputSize, params.vcParams->secondInputSize);
@@ -206,7 +244,12 @@ namespace MyFramework {
             }
         }
 
-        return this->vectorCommitmentSystem->verify(params.vcParams, M1, M2, proof.commitment, proof.proof);
+        bool result = this->vectorCommitmentSystem->verify(params.vcParams, M1, M2, proof.commitment, proof.proof);
+
+        auto end = chrono::steady_clock::now();
+        auto ticks = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+        cout << "PVSS VerifyDist ends. time: " << ticks << "ms" << endl;
+        return result;
     }
 
     template<typename EncryptionType, typename VectorCommitmentType>
@@ -214,6 +257,9 @@ namespace MyFramework {
                                                                   const Encryption::PublicKey *publicKey,
                                                                   const Encryption::PrivateKey *privateKey,
                                                                   const NTL::vec_ZZ &encryptedShare) {
+        auto start = chrono::steady_clock::now();
+        cout << "PVSS Decrypt starts" << endl;
+
         this->encryptionSystem->decrypt(proof.proof, params.encryptionParams, publicKey, privateKey, encryptedShare);
         proof.decryptedShare = 0;
         NTL::ZZ pow = NTL::to_ZZ(1);
@@ -221,6 +267,10 @@ namespace MyFramework {
             proof.decryptedShare += proof.proof->decryptedValues[i] * pow;
             pow *= params.encryptionParams->plainBound;
         }
+
+        auto end = chrono::steady_clock::now();
+        auto ticks = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+        cout << "PVSS Decrypt ends. time: " << ticks << "ms" << endl;
     }
 
     template<typename EncryptionType, typename VectorCommitmentType>
@@ -228,20 +278,31 @@ namespace MyFramework {
                                                                       const Encryption::PublicKey *publicKey,
                                                                       const NTL::vec_ZZ &encryptedShare,
                                                                       const DecryptionProof &proof) {
+        auto start = chrono::steady_clock::now();
+        cout << "PVSS VerifyDec starts" << endl;
+
         NTL::ZZ share = NTL::ZZ::zero();
         NTL::ZZ pow = NTL::to_ZZ(1);
         for (long i = 0; i < params.encryptionParams->plainSize; i++) {
             share += proof.proof->decryptedValues[i] * pow;
             pow *= params.encryptionParams->plainBound;
         }
-        return share == proof.decryptedShare && this->encryptionSystem->verifyDecryption(
-                   params.encryptionParams, publicKey, encryptedShare, proof.proof);
+        bool result = share == proof.decryptedShare && this->encryptionSystem->verifyDecryption(
+        params.encryptionParams, publicKey, encryptedShare, proof.proof);
+
+        auto end = chrono::steady_clock::now();
+        auto ticks = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+        cout << "PVSS VerifyDec ends. time: " << ticks << "ms" << endl;
+        return result;
     }
 
     // TODO: Replace with lagrange interpolation to improve performance
     template<typename EncryptionType, typename VectorCommitmentType>
     void PVSS<EncryptionType, VectorCommitmentType>::reconstruct(NTL::ZZ &reconstruction, const Params &params,
-                                                                 const vector<NTL::ZZ> &decryptedShares) {
+    const vector<NTL::ZZ> &decryptedShares) {
+        auto start = chrono::steady_clock::now();
+        cout << "PVSS reconstruct starts" << endl;
+
         NTL::ZZ_pPush push(params.prime);
         NTL::vec_ZZ_p a, b;
         a.SetLength(params.numberOfParties);
@@ -253,6 +314,10 @@ namespace MyFramework {
 
         const NTL::ZZ_pX f = NTL::interpolate(a, b);
         reconstruction = NTL::rep(NTL::eval(f, NTL::ZZ_p::zero()));
+
+        auto end = chrono::steady_clock::now();
+        auto ticks = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+        cout << "PVSS reconstruct ends. time: " << ticks << "ms" << endl;
     }
 
     template class PVSS<MyEncryption::EncryptionType1, MyVectorCommitment::VectorCommitmentType2>;

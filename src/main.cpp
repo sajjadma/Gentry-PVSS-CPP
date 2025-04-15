@@ -51,7 +51,9 @@ int main(int argc, char** argv) {
     // vc.setup(vcParams, 1, 2, 4, 8, prime, bound, prime);
 
 
-    cout << "Start" << endl;
+    auto start2 = chrono::steady_clock::now();
+    cout << "PVSS starts" << endl;
+
     int n = 5;
     MyFramework::PVSS pvss(
         make_unique<MyEncryption::EncryptionType1>(),
@@ -61,8 +63,10 @@ int main(int argc, char** argv) {
     params.encryptionParams = new MyEncryption::EncryptionType1::MyParams();
     params.vcParams = new MyVectorCommitment::VectorCommitmentType2::MyParams();
     pvss.setup(params, 1, n, n/2 + 1);
-    cout << "Finish Setup" << endl;
 
+
+    auto start1 = chrono::steady_clock::now();
+    cout << "PVSS KeyGen All starts" << endl;
 
     MyFramework::Encryption::KeyPair keyPair[n];
     vector<MyFramework::Encryption::PublicKey *> pks;
@@ -74,8 +78,14 @@ int main(int argc, char** argv) {
         pks.push_back(key.publicKey);
     }
 
+    auto end1 = chrono::steady_clock::now();
+    auto ticks1 = chrono::duration_cast<chrono::milliseconds>(end1 - start1).count();
+    cout << "PVSS KeyGen All ends. time: " << ticks1 << "ms" << endl;
+
     cout << "verifyKey: " << pvss.verifyKey(params, keyPair[n-1].publicKey, keyPair[n-1].proof) << endl;
 
+    start1 = chrono::steady_clock::now();
+    cout << "PVSS Dec All starts" << endl;
 
     MyFramework::DistributionProof proof;
     proof.commitment = new MyVectorCommitment::VectorCommitmentType2::MyCommitment();
@@ -93,12 +103,24 @@ int main(int argc, char** argv) {
         sh.push_back(decrypt.decryptedShare);
     }
 
+    end1 = chrono::steady_clock::now();
+    ticks1 = chrono::duration_cast<chrono::milliseconds>(end1 - start1).count();
+    cout << "PVSS Dec All ends. time: " << ticks1 << "ms" << endl;
+
     cout << "verifyDecryption: " << pvss.verifyDecryption(params, pks[n-1], proof.encryptedShares[n-1], decrypt) << endl;
 
 
     pvss.reconstruct(decrypt.decryptedShare, params, sh);
 
     cout << decrypt.decryptedShare;
+
+    auto end2 = chrono::steady_clock::now();
+    auto ticks2 = chrono::duration_cast<chrono::milliseconds>(end2 - start2).count();
+    cout << "PVSS ends. time: " << ticks2 << "ms" << endl;
+
+    struct rusage ru;
+    getrusage(RUSAGE_SELF, &ru);
+    std::cout << " max mem: " << ru.ru_maxrss << " kilobytes\n";
 
 
     return 0;

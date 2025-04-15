@@ -120,7 +120,10 @@ namespace MyEncryption {
 
     // TODO: Set Parameters Properly
     void EncryptionType1::setup(const MyFramework::Encryption::Params *params, const long securityParameter,
-                                const NTL::ZZ plainBound) {
+    const NTL::ZZ plainBound) {
+        auto start = chrono::steady_clock::now();
+        cout << "Enc Setup starts" << endl;
+
         const auto myParams = (MyParams *) params;
         const long k = NTL::NumBits(plainBound);
         myParams->module = NTL::power2_ZZ(k);
@@ -133,10 +136,17 @@ namespace MyEncryption {
         myParams->plainSize = 1;
         myParams->randomSize = myParams->m * myParams->d + myParams->l + myParams->m + myParams->d;
         myParams->cipherSize = myParams->l * myParams->d + myParams->m + myParams->d;
+
+        auto end = chrono::steady_clock::now();
+        auto ticks = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+        cout << "Enc Setup ends. time: " << ticks << "ms" << endl;
     }
 
     void EncryptionType1::generateKey(const MyFramework::Encryption::KeyPair *key,
-                                      const MyFramework::Encryption::Params *params) {
+    const MyFramework::Encryption::Params *params) {
+        auto start = chrono::steady_clock::now();
+        cout << "Enc KeyGen starts" << endl;
+
         const auto myParams = (MyParams *) params;
         const auto privateKey = (MyPrivateKey *) key->privateKey;
         const auto publicKey = (MyPublicKey *) key->publicKey;
@@ -147,11 +157,18 @@ namespace MyEncryption {
                           myParams->randomBound);
         _hash(b, publicKey->A);
         _preSample(proof->x, privateKey->trapdoor, publicKey->A, b, myParams->randomBound);
+
+        auto end = chrono::steady_clock::now();
+        auto ticks = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+        cout << "Enc KeyGen ends. time: " << ticks << "ms" << endl;
     }
 
     bool EncryptionType1::verifyKey(const MyFramework::Encryption::Params *params,
                                     const MyFramework::Encryption::PublicKey *publicKey,
                                     const MyFramework::Encryption::KeyProof *proof) {
+        auto start = chrono::steady_clock::now();
+        cout << "Enc verifyKey starts" << endl;
+
         const auto myParams = (MyParams *) params;
         const auto myPublicKey = (MyPublicKey *) publicKey;
         const auto myProof = (MyKeyProof *) proof;
@@ -164,6 +181,9 @@ namespace MyEncryption {
             }
         }
 
+        auto end = chrono::steady_clock::now();
+        auto ticks = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+        cout << "Enc verifyKey ends. time: " << ticks << "ms" << endl;
         return true;
     }
 

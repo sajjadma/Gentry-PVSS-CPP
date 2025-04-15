@@ -101,6 +101,9 @@ namespace MyVectorCommitment {
                                       const long firstInputSize, const long secondInputSize, const long outputSize,
                                       const NTL::ZZ firstInputBound, const NTL::ZZ secondInputBound,
                                       const NTL::ZZ coefficientBound) {
+        auto start = chrono::steady_clock::now();
+        cout << "VC Setup starts" << endl;
+
         const auto myParams = (MyParams *) params;
         const long n = NTL::NumBits(secondInputBound);
         const long k = NTL::NumBits(
@@ -218,6 +221,10 @@ namespace MyVectorCommitment {
                            myParams->v2[i] * v2Inv[j] * myParams->t, myParams->beta);
             }
         }
+
+        auto end = chrono::steady_clock::now();
+        auto ticks = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+        cout << "VC Setup ends. time: " << ticks << "ms" << endl;
     }
 
     void VectorCommitmentType2::commit(const MyFramework::VC::Commitment *commitment,
@@ -225,6 +232,9 @@ namespace MyVectorCommitment {
                                        const MyFramework::VC::Params *params,
                                        const NTL::vec_ZZ &firstInput,
                                        const NTL::vec_ZZ &secondInput) {
+        auto start = chrono::steady_clock::now();
+        cout << "VC Commit starts" << endl;
+
         const auto myCommitment = (MyCommitment *) commitment;
         const auto myAuxiliary = (MyAuxiliary *) auxiliary;
         const auto myParams = (MyParams *) params;
@@ -272,11 +282,18 @@ namespace MyVectorCommitment {
                      : myParams->u[(j%3) + myParams->firstInputSize][(i%3) + myParams->firstInputSize]);
             }
         }
+
+        auto end = chrono::steady_clock::now();
+        auto ticks = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+        cout << "VC Commit ends. time: " << ticks << "ms" << endl;
     }
 
     void VectorCommitmentType2::open(const MyFramework::VC::OpeningProof *proof, const MyFramework::VC::Params *params,
                                      const MyFramework::VC::Auxiliary *auxiliary, const NTL::mat_ZZ &openingFunction1,
                                      const NTL::mat_ZZ &openingFunction2) {
+        auto start = chrono::steady_clock::now();
+        cout << "VC Open starts" << endl;
+
         const auto myProof = (MyOpeningProof *) proof;
         const auto myParams = (MyParams *) params;
         const auto myAuxiliary = (MyAuxiliary *) auxiliary;
@@ -320,12 +337,19 @@ namespace MyVectorCommitment {
                 myProof->pi_ip += myAuxiliary->x2[i] * (x2[j] - myParams->h2[j]) * myParams->u[(i%3) + myParams->firstInputSize][(j%3) + myParams->firstInputSize];
             }
         }
+
+        auto end = chrono::steady_clock::now();
+        auto ticks = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+        cout << "VC Open ends. time: " << ticks << "ms" << endl;
     }
 
     bool VectorCommitmentType2::verify(const MyFramework::VC::Params *params, const NTL::mat_ZZ &openingFunction1,
                                        const NTL::mat_ZZ &openingFunction2,
                                        const MyFramework::VC::Commitment *commitment,
                                        const MyFramework::VC::OpeningProof *proof) {
+        auto start = chrono::steady_clock::now();
+        cout << "VC verify starts" << endl;
+
         const auto myParams = (MyParams *) params;
         const auto myCommitment = (MyCommitment *) commitment;
         const auto myProof = (MyOpeningProof *) proof;
@@ -341,6 +365,10 @@ namespace MyVectorCommitment {
         if (myProof->pi_ip * myProof->pi_ip > myParams->alpha) {
             return false;
         }
+
+        auto end = chrono::steady_clock::now();
+        auto ticks = chrono::duration_cast<chrono::milliseconds>(end - start).count();
+        cout << "VC verify ends. time: " << ticks << "ms" << endl;
 
         return true;
     }
