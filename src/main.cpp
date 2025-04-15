@@ -84,9 +84,6 @@ int main(int argc, char** argv) {
 
     cout << "verifyKey: " << pvss.verifyKey(params, keyPair[n-1].publicKey, keyPair[n-1].proof) << endl;
 
-    start1 = chrono::steady_clock::now();
-    cout << "PVSS Dec All starts" << endl;
-
     MyFramework::DistributionProof proof;
     proof.commitment = new MyVectorCommitment::VectorCommitmentType2::MyCommitment();
     proof.proof = new MyVectorCommitment::VectorCommitmentType2::MyOpeningProof();
@@ -94,6 +91,9 @@ int main(int argc, char** argv) {
 
     cout << "verifyDistribution: " << pvss.verifyDistribution(params, pks, proof) << endl;
 
+
+    start1 = chrono::steady_clock::now();
+    cout << "PVSS Dec All starts" << endl;
 
     MyFramework::DecryptionProof decrypt;
     decrypt.proof = new MyEncryption::EncryptionType1::MyDecryptionProof();
