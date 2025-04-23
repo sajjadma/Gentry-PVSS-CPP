@@ -62,7 +62,7 @@ namespace MyFramework {
         struct EncryptionSystem {
             virtual ~EncryptionSystem() = default;
 
-            virtual void setup(const Params *params, const long securityParameter, const NTL::ZZ plainBound) = 0;
+            virtual void setup(const Params *params, long securityParameter, NTL::ZZ plainBound) = 0;
 
             virtual void generateKey(const KeyPair *key, const Params *params) = 0;
 
@@ -117,9 +117,9 @@ namespace MyFramework {
         struct VectorCommitmentSystem {
             virtual ~VectorCommitmentSystem() = default;
 
-            virtual void setup(const Params *params, const long securityParameter, const long firstInputSize,
-                               const long secondInputSize, const long outputSize, const NTL::ZZ firstInputBound,
-                               const NTL::ZZ secondInputBound, const NTL::ZZ coefficientBound) = 0;
+            virtual void setup(const Params *params, long securityParameter, long firstInputSize,
+                               long secondInputSize, long outputSize, NTL::ZZ firstInputBound,
+                               NTL::ZZ secondInputBound, NTL::ZZ coefficientBound) = 0;
 
             virtual void commit(const Commitment *commitment, const Auxiliary *auxiliary, const Params *params,
                                 const NTL::vec_ZZ &firstInput, const NTL::vec_ZZ &secondInput) = 0;
@@ -176,8 +176,8 @@ namespace MyFramework {
                                                                                 std::move(vectorCommitmentSystem)) {
         }
 
-        void setup(Params &params, const long securityParameter, const long numberOfParties,
-                   const long threshold);
+        void setup(Params &params, long securityParameter, long numberOfParties,
+                   long threshold);
 
         void generateKey(Encryption::KeyPair &key, const Params &params);
 

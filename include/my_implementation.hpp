@@ -28,7 +28,7 @@
 
 namespace MyEncryption {
     class EncryptionType1 final : MyFramework::Encryption::EncryptionSystem {
-        static void _generateTrapdoor(NTL::mat_ZZ &A, NTL::mat_ZZ &trapdoor, const long n, const long m,
+        static void _generateTrapdoor(NTL::mat_ZZ &A, NTL::mat_ZZ &trapdoor, long n, long m,
                                       const NTL::ZZ &module, const NTL::ZZ &bound);
 
         static void _preSample(NTL::vec_ZZ &x, const NTL::mat_ZZ &trapdoor, const NTL::mat_ZZ &A, const NTL::vec_ZZ &b,
@@ -61,8 +61,8 @@ namespace MyEncryption {
             NTL::mat_ZZ B;
         };
 
-        void setup(const MyFramework::Encryption::Params *params, const long securityParameter,
-                   const NTL::ZZ plainBound) override;
+        void setup(const MyFramework::Encryption::Params *params, long securityParameter,
+                   NTL::ZZ plainBound) override;
 
         void generateKey(const MyFramework::Encryption::KeyPair *key,
                          const MyFramework::Encryption::Params *params) override;
@@ -121,8 +121,8 @@ namespace MyEncryption {
             NTL::mat_ZZ B;
         };
 
-        void setup(const MyFramework::Encryption::Params *params, const long securityParameter,
-                   const NTL::ZZ plainBound) override;
+        void setup(const MyFramework::Encryption::Params *params, long securityParameter,
+                   NTL::ZZ plainBound) override;
 
         void generateKey(const MyFramework::Encryption::KeyPair *key,
                          const MyFramework::Encryption::Params *params) override;
@@ -187,9 +187,9 @@ namespace MyVectorCommitment {
             NTL::vec_ZZ pi, pi_eq, pi_ip;
         };
 
-        void setup(const MyFramework::VC::Params *params, const long securityParameter, const long firstInputSize,
-                   const long secondInputSize, const long outputSize, const NTL::ZZ firstInputBound,
-                   const NTL::ZZ secondInputBound, const NTL::ZZ coefficientBound) override;
+        void setup(const MyFramework::VC::Params *params, long securityParameter, long firstInputSize,
+                   long secondInputSize, long outputSize, NTL::ZZ firstInputBound,
+                   NTL::ZZ secondInputBound, NTL::ZZ coefficientBound) override;
 
         void commit(const MyFramework::VC::Commitment *commitment, const MyFramework::VC::Auxiliary *auxiliary,
                     const MyFramework::VC::Params *params, const NTL::vec_ZZ &firstInput,
@@ -235,9 +235,9 @@ namespace MyVectorCommitment {
             NTL::vec_ZZ pi, pi_eq, pi_ip;
         };
 
-        void setup(const MyFramework::VC::Params *params, const long securityParameter, const long firstInputSize,
-                   const long secondInputSize, const long outputSize, const NTL::ZZ firstInputBound,
-                   const NTL::ZZ secondInputBound, const NTL::ZZ coefficientBound) override;
+        void setup(const MyFramework::VC::Params *params, long securityParameter, long firstInputSize,
+                   long secondInputSize, long outputSize, NTL::ZZ firstInputBound,
+                   NTL::ZZ secondInputBound, NTL::ZZ coefficientBound) override;
 
         void commit(const MyFramework::VC::Commitment *commitment, const MyFramework::VC::Auxiliary *auxiliary,
                     const MyFramework::VC::Params *params, const NTL::vec_ZZ &firstInput,
