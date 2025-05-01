@@ -60,16 +60,18 @@ namespace NewPVSSScheme::PVSSType1 {
             x[i] = tmp < p ? (z + 1) : z;
         }
 
-        for (long i = 0; i < k - 1; i++) {
+        for (long i = 1; i < k - 1; i++) {
             y[i] = 2 * x[i] - x[i - 1] + x[k - 1] * bit(q, i) + bit(u, i);
         }
         y[k - 1] = -x[k - 2] + x[k - 1] * bit(q, k - 1) + bit(u, k - 1);
+        y[0] = 2 * x[0] + x[k - 1] * bit(q, 0) + bit(u, 0);
 
         return y;
     }
 
     void _generateTrapdoor(NTL::mat_ZZ_pE &A, NTL::mat_ZZ_pE &trapdoor, const long n, const long m, const NTL::ZZ &q,
                            const NTL::ZZ_pX &f, const NTL::ZZ &bound) {
+        NTL::ZZ_pPush push;
         NTL::ZZ_p::init(q);
         NTL::ZZ_pE::init(f);
 
@@ -113,6 +115,7 @@ namespace NewPVSSScheme::PVSSType1 {
 
     void _preSample(NTL::vec_ZZ_pE &x, const NTL::mat_ZZ_pE &trapdoor, const NTL::mat_ZZ_pE &A, const NTL::vec_ZZ_pE &b,
                     const NTL::ZZ &q, const NTL::ZZ_pX &f, const NTL::ZZ &bound) {
+        NTL::ZZ_pPush push;
         NTL::ZZ_p::init(q);
         NTL::ZZ_pE::init(f);
 
@@ -125,10 +128,10 @@ namespace NewPVSSScheme::PVSSType1 {
         const NTL::ZZ a = SqrRoot(bound);
         for (long i = 0; i < n; i++) {
             for (long j = 0; j < d; j++) {
-                const NTL::ZZ u = rep(b[i]._ZZ_pE__rep.rep[j]);
+                const NTL::ZZ u = rep(coeff(rep(b[i]), j));
                 const NTL::vec_ZZ tmp = g_inverse(u, q);
                 for (long l = 0; l < k; l++) {
-                    const long index = i * k + j;
+                    const long index = i * k + l;
                     SetCoeff(y[index]._ZZ_pE__rep, j, to_ZZ_p(tmp[l]));
                 }
             }
@@ -139,6 +142,7 @@ namespace NewPVSSScheme::PVSSType1 {
     }
 
     Params setup(const long securityParameter, const long numberOfParties, const long threshold) {
+        NTL::ZZ_pPush push;
         Params params;
         params.numberOfParties = numberOfParties;
         params.threshold = threshold;
@@ -187,6 +191,7 @@ namespace NewPVSSScheme::PVSSType1 {
     }
 
     KeyPair generateKey(const Params &params, long index) {
+        NTL::ZZ_pPush push;
         KeyPair key;
         key.privateKey.a = params.a;
         key.publicKey.a = params.a;
