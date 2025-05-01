@@ -86,6 +86,8 @@ namespace NewPVSSScheme::PVSSType1 {
         NTL::ZZ decryptedShare;
     };
 
+    NTL::vec_ZZ g_inverse(const NTL::ZZ &u, const NTL::ZZ &q);
+
     void _generateTrapdoor(NTL::mat_ZZ_pE &A, NTL::mat_ZZ_pE &trapdoor, long n, long m,
                            const NTL::ZZ &q, const NTL::ZZ_pX &f, const NTL::ZZ &bound);
 
