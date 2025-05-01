@@ -25,7 +25,6 @@
  **/
 
 #include <vector>
-
 #include "NTL/mat_ZZ_pE.h"
 
 namespace NewPVSSScheme::PVSSType1 {
@@ -35,6 +34,7 @@ namespace NewPVSSScheme::PVSSType1 {
         NTL::ZZ p;
         NTL::ZZ q;
         long k;
+        NTL::ZZ_pX f;
         NTL::ZZ bound;
         NTL::ZZ_pE a;
         NTL::vec_ZZ_pE v;
@@ -87,10 +87,10 @@ namespace NewPVSSScheme::PVSSType1 {
     };
 
     void _generateTrapdoor(NTL::mat_ZZ_pE &A, NTL::mat_ZZ_pE &trapdoor, long n, long m,
-                           const NTL::ZZ &q, NTL::ZZ_pX f, const NTL::ZZ &bound);
+                           const NTL::ZZ &q, const NTL::ZZ_pX &f, const NTL::ZZ &bound);
 
     void _preSample(NTL::vec_ZZ_pE &x, const NTL::mat_ZZ_pE &trapdoor, const NTL::mat_ZZ_pE &A, const NTL::vec_ZZ_pE &b,
-                    const NTL::ZZ &q, NTL::ZZ_pX f, const NTL::ZZ &bound);
+                    const NTL::ZZ &q, const NTL::ZZ_pX &f, const NTL::ZZ &bound);
 
     Params setup(long securityParameter, long numberOfParties, long threshold);
 
@@ -98,10 +98,10 @@ namespace NewPVSSScheme::PVSSType1 {
 
     bool verifyKey(const Params &params, const PublicKey &publicKey, const KeyProof &proof);
 
-    DistributionProof distribute(const Params &params, const std::vector<PublicKey &> &publicKeys,
+    DistributionProof distribute(const Params &params, const std::vector<PublicKey> &publicKeys,
                                  const NTL::ZZ &secret);
 
-    bool verifyDistribution(const Params &params, const std::vector<PublicKey &> &publicKeys,
+    bool verifyDistribution(const Params &params, const std::vector<PublicKey> &publicKeys,
                             const DistributionProof &proof);
 
     DecryptionProof decryptShare(const Params &params, const PublicKey &publicKey,

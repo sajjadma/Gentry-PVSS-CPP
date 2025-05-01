@@ -24,9 +24,6 @@
 
 #include "pvssSchemeType1.hpp"
 
-#include <NTL/mat_lzz_p.h>
-#include <NTL/xdouble.h>
-
 using namespace std;
 
 namespace NewPVSSScheme::PVSSType1 {
@@ -43,10 +40,9 @@ namespace NewPVSSScheme::PVSSType1 {
 
         NTL::ZZ_p::init(params.q);
 
-        NTL::ZZ_pX f;
-        SetCoeff(f, params.k);
-        SetCoeff(f, 0);
-        NTL::ZZ_pE::init(f);
+        SetCoeff(params.f, params.k);
+        SetCoeff(params.f, 0);
+        NTL::ZZ_pE::init(params.f);
 
         random(params.a);
 
@@ -57,7 +53,7 @@ namespace NewPVSSScheme::PVSSType1 {
         long n = 2;
         long m = 2 * n * (securityParameter * 4 + 4);
         NTL::mat_ZZ_pE td;
-        _generateTrapdoor(params.A, td, n, m, params.q, f, params.bound);
+        _generateTrapdoor(params.A, td, n, m, params.q, params.f, params.bound);
 
         NTL::vec_ZZ_pE tmp;
         random(tmp, w);
@@ -68,8 +64,8 @@ namespace NewPVSSScheme::PVSSType1 {
             for (long j = 0; j < w; j++) {
                 if (i == j) continue;
 
-                _preSample(params.u[i][j], td, params.A, params.v[i] / params.v[j] * params.t, params.q, f,
-                           params.bound);
+                _preSample(params.u[i][j], td, params.A, params.v[i] / params.v[j] * params.t, params.q,
+                           params.f, params.bound);
             }
         }
 
@@ -85,11 +81,7 @@ namespace NewPVSSScheme::PVSSType1 {
         key.publicKey.a = params.a;
 
         NTL::ZZ_p::init(params.bound);
-
-        NTL::ZZ_pX f;
-        SetCoeff(f, params.k);
-        SetCoeff(f, 0);
-        NTL::ZZ_pE::init(f);
+        NTL::ZZ_pE::init(params.f);
 
         random(key.privateKey.s);
 
