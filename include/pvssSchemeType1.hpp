@@ -26,6 +26,7 @@
 
 #include <vector>
 #include "NTL/mat_ZZ_pE.h"
+#include "NTL/ZZX.h"
 
 namespace NewPVSSScheme::PVSSType1 {
     struct Params {
@@ -41,7 +42,7 @@ namespace NewPVSSScheme::PVSSType1 {
         NTL::vec_ZZ_pE h;
         NTL::mat_ZZ_pE A;
         NTL::vec_ZZ_pE t;
-        NTL::Mat<NTL::vec_ZZ_pE> u;
+        NTL::Mat<NTL::vec_ZZX> u;
     };
 
     struct PrivateKey {
@@ -86,13 +87,15 @@ namespace NewPVSSScheme::PVSSType1 {
         NTL::ZZ decryptedShare;
     };
 
+    NTL::vec_ZZX operator*(const NTL::Mat<NTL::ZZX> &A, const NTL::vec_ZZX &b);
+
     NTL::vec_ZZ g_inverse(const NTL::ZZ &u, const NTL::ZZ &q);
 
-    void _generateTrapdoor(NTL::mat_ZZ_pE &A, NTL::mat_ZZ_pE &trapdoor, long n, long m,
+    void _generateTrapdoor(NTL::mat_ZZ_pE &A, NTL::Mat<NTL::ZZX> &trapdoor, long n, long m,
                            const NTL::ZZ &q, const NTL::ZZ_pX &f, const NTL::ZZ &bound);
 
-    void _preSample(NTL::vec_ZZ_pE &x, const NTL::mat_ZZ_pE &trapdoor, const NTL::mat_ZZ_pE &A, const NTL::vec_ZZ_pE &b,
-                    const NTL::ZZ &q, const NTL::ZZ_pX &f, const NTL::ZZ &bound);
+    void _preSample(NTL::vec_ZZX &x, const NTL::Mat<NTL::ZZX> &trapdoor, const NTL::mat_ZZ_pE &A,
+                    const NTL::vec_ZZ_pE &b, const NTL::ZZ &q, const NTL::ZZ_pX &f, const NTL::ZZ &bound);
 
     Params setup(long securityParameter, long numberOfParties, long threshold);
 

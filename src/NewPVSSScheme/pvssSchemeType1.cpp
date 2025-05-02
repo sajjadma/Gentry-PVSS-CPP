@@ -27,6 +27,30 @@
 using namespace std;
 
 namespace NewPVSSScheme::PVSSType1 {
+    NTL::vec_ZZX operator*(const NTL::Mat<NTL::ZZX> &A, const NTL::vec_ZZX &b) {
+        const long n = A.NumRows();
+        const long l = A.NumCols();
+
+        if (l != b.length())
+            throw "matrix mul: dimension mismatch";
+
+        NTL::vec_ZZX x;
+        x.SetLength(n);
+
+        NTL::ZZX acc, tmp;
+
+        for (long i = 1; i <= n; i++) {
+            clear(acc);
+            for (long k = 1; k <= l; k++) {
+                mul(tmp, A(i, k), b(k));
+                add(acc, acc, tmp);
+            }
+            conv(x(i), acc);
+        }
+
+        return x;
+    }
+
     NTL::vec_ZZ g_inverse(const NTL::ZZ &u, const NTL::ZZ &q) {
         const long k = NumBits(q);
         NTL::vec_ZZ x, y;
@@ -69,13 +93,14 @@ namespace NewPVSSScheme::PVSSType1 {
         return y;
     }
 
-    void _generateTrapdoor(NTL::mat_ZZ_pE &A, NTL::mat_ZZ_pE &trapdoor, const long n, const long m, const NTL::ZZ &q,
-                           const NTL::ZZ_pX &f, const NTL::ZZ &bound) {
+    void _generateTrapdoor(NTL::mat_ZZ_pE &A, NTL::Mat<NTL::ZZX> &trapdoor, const long n, const long m,
+                           const NTL::ZZ &q, const NTL::ZZ_pX &f, const NTL::ZZ &bound) {
         NTL::ZZ_pPush push;
         NTL::ZZ_p::init(q);
         NTL::ZZ_pE::init(f);
 
         const long k = NumBits(q);
+        const long d = deg(f);
         const long _n = n * k;
         const long _m = m - _n;
 
@@ -83,12 +108,17 @@ namespace NewPVSSScheme::PVSSType1 {
         A_hat.SetDims(n, _m);
         G.SetDims(n, _n);
         A.SetDims(n, m);
+        trapdoor.SetDims(_m, _n);
 
         const NTL::ZZ a = SqrRoot(bound);
-        NTL::ZZ_p::init(a);
-        random(trapdoor, _m, _n);
+        for (long i = 0; i < _m; i++) {
+            for (long j = 0; j < _n; j++) {
+                for (long l = 0; l < d; l++) {
+                    SetCoeff(trapdoor[i][j], l, RandomBnd(a));
+                }
+            }
+        }
 
-        NTL::ZZ_p::init(q);
         for (long i = 0; i < n; i++) {
             for (long j = 0; j < _m; j++) {
                 const NTL::ZZ_pE value = NTL::random_ZZ_pE();
@@ -104,7 +134,8 @@ namespace NewPVSSScheme::PVSSType1 {
             }
         }
 
-        G = G - A_hat * trapdoor;
+        G = G - A_hat * NTL::conv<NTL::mat_ZZ_pE, NTL::Mat<NTL::ZZ_pX> >(
+                NTL::conv<NTL::Mat<NTL::ZZ_pX>, NTL::Mat<NTL::ZZX> >(trapdoor));
 
         for (long i = 0; i < n; i++) {
             for (long j = 0; j < _n; j++) {
@@ -113,8 +144,8 @@ namespace NewPVSSScheme::PVSSType1 {
         }
     }
 
-    void _preSample(NTL::vec_ZZ_pE &x, const NTL::mat_ZZ_pE &trapdoor, const NTL::mat_ZZ_pE &A, const NTL::vec_ZZ_pE &b,
-                    const NTL::ZZ &q, const NTL::ZZ_pX &f, const NTL::ZZ &bound) {
+    void _preSample(NTL::vec_ZZX &x, const NTL::Mat<NTL::ZZX> &trapdoor, const NTL::mat_ZZ_pE &A,
+                    const NTL::vec_ZZ_pE &b, const NTL::ZZ &q, const NTL::ZZ_pX &f, const NTL::ZZ &bound) {
         NTL::ZZ_pPush push;
         NTL::ZZ_p::init(q);
         NTL::ZZ_pE::init(f);
@@ -123,7 +154,7 @@ namespace NewPVSSScheme::PVSSType1 {
         const long k = m / n;
         const long d = deg(f);
 
-        NTL::vec_ZZ_pE y;
+        NTL::vec_ZZX y;
         y.SetLength(m);
         const NTL::ZZ a = SqrRoot(bound);
         for (long i = 0; i < n; i++) {
@@ -132,7 +163,7 @@ namespace NewPVSSScheme::PVSSType1 {
                 const NTL::vec_ZZ tmp = g_inverse(u, q);
                 for (long l = 0; l < k; l++) {
                     const long index = i * k + l;
-                    SetCoeff(y[index]._ZZ_pE__rep, j, to_ZZ_p(tmp[l]));
+                    SetCoeff(y[index], j, tmp[l]);
                 }
             }
         }
@@ -163,15 +194,21 @@ namespace NewPVSSScheme::PVSSType1 {
 
         const long w = params.threshold + 1 + 4 * params.numberOfParties;
         const long o = 3 * params.numberOfParties;
-        random(params.v, w);
+        params.v.SetLength(w);
+        for (long i = 0; i < w; i++) {
+            while (true) {
+                random(params.v[i]);
+                if (NTL::ZZ_pX unused; InvModStatus(unused, rep(params.v[i]), params.f) == 0) break;
+            }
+        }
 
         constexpr long n = 2;
         const long m = 2 * n * (securityParameter * 4 + 4);
-        NTL::mat_ZZ_pE td;
+        NTL::Mat<NTL::ZZX> td;
         _generateTrapdoor(params.A, td, n, m, params.q, params.f, params.bound);
 
         NTL::vec_ZZ_pE tmp;
-        random(tmp, w);
+        random(tmp, m);
         params.t = params.A * tmp;
 
         params.u.SetDims(w, w);
@@ -192,12 +229,13 @@ namespace NewPVSSScheme::PVSSType1 {
 
     KeyPair generateKey(const Params &params, long index) {
         NTL::ZZ_pPush push;
-        KeyPair key;
-        key.privateKey.a = params.a;
-        key.publicKey.a = params.a;
 
         NTL::ZZ_p::init(params.bound);
         NTL::ZZ_pE::init(params.f);
+
+        KeyPair key;
+        key.privateKey.a = params.a;
+        key.publicKey.a = params.a;
 
         random(key.privateKey.s);
 
@@ -209,5 +247,43 @@ namespace NewPVSSScheme::PVSSType1 {
         key.publicKey.b = key.privateKey.a * key.privateKey.s + e;
 
         return key;
+    }
+
+    bool verifyKey(const Params &params, const PublicKey &publicKey, const KeyProof &proof) {
+        return true;
+    }
+
+    DistributionProof distribute(const Params &params, const std::vector<PublicKey> &publicKeys,
+                                 const NTL::ZZ &secret) {
+    }
+
+    bool verifyDistribution(const Params &params, const std::vector<PublicKey> &publicKeys,
+                            const DistributionProof &proof) {
+    }
+
+    DecryptionProof decryptShare(const Params &params, const PublicKey &publicKey, const PrivateKey &privateKey,
+                                 const Cipher &encryptedShare) {
+    }
+
+    bool verifyDecryption(const Params &params, const PublicKey &publicKey, const Cipher &encryptedShare,
+                          const DecryptionProof &proof) {
+        return true;
+    }
+
+    NTL::ZZ reconstruct(const Params &params, const std::vector<NTL::ZZ> &decryptedShares) {
+        NTL::ZZ_pPush push;
+
+        NTL::ZZ_p::init(params.p);
+
+        NTL::vec_ZZ_p a, b;
+        a.SetLength(params.numberOfParties);
+        b.SetLength(params.numberOfParties);
+        for (long i = 0; i < params.numberOfParties; i++) {
+            a[i] = NTL::to_ZZ_p(i + 1);
+            b[i] = to_ZZ_p(decryptedShares[i]);
+        }
+
+        const NTL::ZZ_pX f = interpolate(a, b);
+        return rep(eval(f, NTL::ZZ_p::zero()));
     }
 }
