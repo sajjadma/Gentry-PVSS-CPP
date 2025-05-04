@@ -125,7 +125,7 @@ namespace MyFramework {
                 encodedShare[j] = share % params.encryptionParams->plainBound;
                 firstInput[index] = encodedShare[j];
                 M1.put(outputIndex, index,
-                       j == 0 ? NTL::to_ZZ(1) : params.encryptionParams->plainBound * M1[outputIndex][index - 1]);
+                       j == 0 ? NTL::to_ZZ(-1) : params.encryptionParams->plainBound * M1[outputIndex][index - 1]);
                 share = share / params.encryptionParams->plainBound;
             }
 
@@ -170,8 +170,7 @@ namespace MyFramework {
                         M2.put(outputIndex, index,
                                l == 0
                                    ? f2[j][k]
-                                   : f2[j][k] * params.vcParams->secondInputBound *
-                                     M2[outputIndex][index - 1]);
+                                   : params.vcParams->secondInputBound * M2[outputIndex][index - 1]);
                     }
                 }
             }
@@ -200,7 +199,8 @@ namespace MyFramework {
         long outputIndex = 0;
         for (long i = 0; i < params.numberOfParties; i++) {
             if (proof.proof->output[outputIndex] != 0) {
-                cout << "Wrong output dist verify: (" << outputIndex << ") " << proof.proof->output[outputIndex] << endl;
+                cout << "Wrong output dist verify: (" << outputIndex << ") " << proof.proof->output[outputIndex] <<
+                        endl;
             }
 
             M1.put(outputIndex, 0, NTL::to_ZZ(1));
@@ -211,7 +211,7 @@ namespace MyFramework {
             for (long j = 0; j < params.encryptionParams->plainSize; j++) {
                 const long index = params.threshold + 1 + (i * params.encryptionParams->plainSize) + j;
                 M1.put(outputIndex, index,
-                       j == 0 ? NTL::to_ZZ(1) : params.encryptionParams->plainBound * M1[outputIndex][index - 1]);
+                       j == 0 ? NTL::to_ZZ(-1) : params.encryptionParams->plainBound * M1[outputIndex][index - 1]);
             }
 
             NTL::mat_ZZ f1, f2;
@@ -222,7 +222,8 @@ namespace MyFramework {
             for (long j = 0; j < params.encryptionParams->cipherSize; j++) {
                 outputIndex++;
                 if (proof.proof->output[outputIndex] != proof.encryptedShares[i][j]) {
-                    cout << "Wrong output dist verify: (" << outputIndex << ") " << proof.proof->output[outputIndex] << endl;
+                    cout << "Wrong output dist verify: (" << outputIndex << ") " << proof.proof->output[outputIndex] <<
+                            endl;
                 }
 
                 for (long k = 0; k < params.encryptionParams->plainSize; k++) {
@@ -237,8 +238,7 @@ namespace MyFramework {
                         M2.put(outputIndex, index,
                                l == 0
                                    ? f2[j][k]
-                                   : f2[j][k] * params.vcParams->secondInputBound *
-                                     M1[outputIndex][index - 1]);
+                                   : params.vcParams->secondInputBound * M1[outputIndex][index - 1]);
                     }
                 }
             }
@@ -288,7 +288,7 @@ namespace MyFramework {
             pow *= params.encryptionParams->plainBound;
         }
         bool result = share == proof.decryptedShare && this->encryptionSystem->verifyDecryption(
-        params.encryptionParams, publicKey, encryptedShare, proof.proof);
+                          params.encryptionParams, publicKey, encryptedShare, proof.proof);
 
         auto end = chrono::steady_clock::now();
         auto ticks = chrono::duration_cast<chrono::milliseconds>(end - start).count();
@@ -299,7 +299,7 @@ namespace MyFramework {
     // TODO: Replace with lagrange interpolation to improve performance
     template<typename EncryptionType, typename VectorCommitmentType>
     void PVSS<EncryptionType, VectorCommitmentType>::reconstruct(NTL::ZZ &reconstruction, const Params &params,
-    const vector<NTL::ZZ> &decryptedShares) {
+                                                                 const vector<NTL::ZZ> &decryptedShares) {
         auto start = chrono::steady_clock::now();
         cout << "PVSS reconstruct starts" << endl;
 

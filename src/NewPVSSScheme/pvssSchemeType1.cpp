@@ -186,16 +186,20 @@ namespace NewPVSSScheme::PVSSType1 {
 
         NTL::ZZ_p::init(params.q);
 
+        clear(params.f);
         SetCoeff(params.f, params.k);
         SetCoeff(params.f, 0);
         NTL::ZZ_pE::init(params.f);
 
-        random(params.a);
+        clear(params.a);
+        for (long i = 0; i < params.k; i++) {
+            SetCoeff(params.a, i, RandomBnd(params.p));
+        }
 
-        const long w = params.threshold + 1 + 4 * params.numberOfParties;
-        const long o = 3 * params.numberOfParties;
-        params.v.SetLength(w);
-        for (long i = 0; i < w; i++) {
+        params.w = params.threshold + 1 + 4 * params.numberOfParties;
+        params.o = 3 * params.numberOfParties;
+        params.v.SetLength(params.w);
+        for (long i = 0; i < params.w; i++) {
             while (true) {
                 random(params.v[i]);
                 if (NTL::ZZ_pX unused; InvModStatus(unused, rep(params.v[i]), params.f) == 0) break;
@@ -211,9 +215,9 @@ namespace NewPVSSScheme::PVSSType1 {
         random(tmp, m);
         params.t = params.A * tmp;
 
-        params.u.SetDims(w, w);
-        for (long i = 0; i < w; i++) {
-            for (long j = 0; j < w; j++) {
+        params.u.SetDims(params.w, params.w);
+        for (long i = 0; i < params.w; i++) {
+            for (long j = 0; j < params.w; j++) {
                 if (i == j) continue;
 
                 _preSample(params.u[i][j], td, params.A, params.v[i] / params.v[j] * params.t, params.q,
@@ -222,27 +226,22 @@ namespace NewPVSSScheme::PVSSType1 {
         }
 
         NTL::ZZ_p::init(params.p);
-        random(params.h, o);
+        random(params.h, params.o);
 
         return params;
     }
 
-    KeyPair generateKey(const Params &params, long index) {
-        NTL::ZZ_pPush push;
-
-        NTL::ZZ_p::init(params.bound);
-        NTL::ZZ_pE::init(params.f);
-
+    KeyPair generateKey(const Params &params, [[maybe_unused]] long index) {
         KeyPair key;
         key.privateKey.a = params.a;
         key.publicKey.a = params.a;
 
-        random(key.privateKey.s);
-
-        NTL::ZZ_pE e;
-        random(e);
-
-        NTL::ZZ_p::init(params.q);
+        clear(key.privateKey.s);
+        NTL::ZZX e;
+        for (long i = 0; i < params.k; i++) {
+            SetCoeff(key.privateKey.s, i, RandomBnd(params.bound));
+            SetCoeff(e, i, RandomBnd(params.bound));
+        }
 
         key.publicKey.b = key.privateKey.a * key.privateKey.s + e;
 
@@ -253,8 +252,72 @@ namespace NewPVSSScheme::PVSSType1 {
         return true;
     }
 
-    DistributionProof distribute(const Params &params, const std::vector<PublicKey> &publicKeys,
+    DistributionProof distribute(const Params &params, const NTL::Vec<PublicKey> &publicKeys,
                                  const NTL::ZZ &secret) {
+        DistributionProof proof;
+        NTL::vec_ZZX input;
+        input.SetLength(params.w);
+        NTL::Mat<NTL::ZZX> M;
+        M.SetDims(params.o, params.w);
+        long inputIndex = 0;
+        long outputIndex = 0;
+        proof.encryptedShares.SetLength(params.numberOfParties);
+
+        // Polynomial part starts
+        input[inputIndex] = secret;
+        for (inputIndex = 1; inputIndex <= params.threshold; inputIndex++) {
+            input[inputIndex] = to_ZZX(RandomBnd(params.p));
+        }
+        // Polynomial part ends
+
+        for (long i = 0; i < params.numberOfParties; i++) {
+            NTL::ZZ b = NTL::to_ZZ(1);
+            NTL::ZZ share = NTL::to_ZZ(0);
+            for (long j = 0; j < params.threshold + 1; j++) {
+                M.put(outputIndex, j, to_ZZX(b));
+                share += coeff(input[j], 0) * b;
+                MulMod(b, b, i + 1, params.p);
+            }
+
+            input[inputIndex] = share;
+            M.put(outputIndex, inputIndex, NTL::to_ZZX(-1));
+            inputIndex++;
+            outputIndex++;
+
+            NTL::ZZX r, e1, e2;
+            for (long j = 0; j < params.k + 1; j++) {
+                SetCoeff(r, i, RandomBnd(params.bound));
+                SetCoeff(e1, i, RandomBnd(params.bound));
+                SetCoeff(e2, i, RandomBnd(params.bound));
+            }
+            input[inputIndex] = r;
+
+            proof.encryptedShares.push_back(f1 * encodedShare + f2 * r);
+
+            for (long j = 0; j < params.encryptionParams->cipherSize; j++) {
+                outputIndex++;
+                for (long k = 0; k < params.encryptionParams->plainSize; k++) {
+                    const long index = params.threshold + 1 + (i * params.encryptionParams->plainSize) + k;
+                    M1.put(outputIndex, index, f1[j][k]);
+                }
+
+                for (long k = 0; k < params.encryptionParams->randomSize; k++) {
+                    for (long l = 0; l < params.vcParams->secondInputPartitionSize; l++) {
+                        const long index = (i * params.encryptionParams->randomSize) +
+                                           (k * params.vcParams->secondInputPartitionSize) + l;
+                        M2.put(outputIndex, index,
+                               l == 0
+                                   ? f2[j][k]
+                                   : f2[j][k] * params.vcParams->secondInputBound *
+                                     M2[outputIndex][index - 1]);
+                    }
+                }
+            }
+        }
+
+        VC::Auxiliary *auxiliary = new MyVectorCommitment::VectorCommitmentType2::MyAuxiliary();
+        this->vectorCommitmentSystem->commit(proof.commitment, auxiliary, params.vcParams, firstInput, secondInput);
+        this->vectorCommitmentSystem->open(proof.proof, params.vcParams, auxiliary, M1, M2);
     }
 
     bool verifyDistribution(const Params &params, const std::vector<PublicKey> &publicKeys,

@@ -24,7 +24,6 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  **/
 
-#include <vector>
 #include "NTL/mat_ZZ_pE.h"
 #include "NTL/ZZX.h"
 
@@ -37,7 +36,9 @@ namespace NewPVSSScheme::PVSSType1 {
         long k;
         NTL::ZZ_pX f;
         NTL::ZZ bound;
-        NTL::ZZ_pE a;
+        NTL::ZZX a;
+        long w;
+        long o;
         NTL::vec_ZZ_pE v;
         NTL::vec_ZZ_pE h;
         NTL::mat_ZZ_pE A;
@@ -46,13 +47,13 @@ namespace NewPVSSScheme::PVSSType1 {
     };
 
     struct PrivateKey {
-        NTL::ZZ_pE a;
-        NTL::ZZ_pE s;
+        NTL::ZZX a;
+        NTL::ZZX s;
     };
 
     struct PublicKey {
-        NTL::ZZ_pE a;
-        NTL::ZZ_pE b;
+        NTL::ZZX a;
+        NTL::ZZX b;
     };
 
     struct KeyProof {
@@ -65,8 +66,8 @@ namespace NewPVSSScheme::PVSSType1 {
     };
 
     struct Cipher {
-        NTL::ZZ_pE u;
-        NTL::ZZ_pE v;
+        NTL::ZZX u;
+        NTL::ZZX v;
     };
 
     struct Commitment {
@@ -74,11 +75,11 @@ namespace NewPVSSScheme::PVSSType1 {
     };
 
     struct OpeningProof {
-        NTL::vec_ZZ output;
+        NTL::vec_ZZX output;
     };
 
     struct DistributionProof {
-        std::vector<Cipher> encryptedShares;
+        NTL::Vec<Cipher> encryptedShares;
         Commitment commitment;
         OpeningProof proof;
     };
@@ -103,10 +104,10 @@ namespace NewPVSSScheme::PVSSType1 {
 
     bool verifyKey(const Params &params, const PublicKey &publicKey, const KeyProof &proof);
 
-    DistributionProof distribute(const Params &params, const std::vector<PublicKey> &publicKeys,
+    DistributionProof distribute(const Params &params, const NTL::Vec<PublicKey> &publicKeys,
                                  const NTL::ZZ &secret);
 
-    bool verifyDistribution(const Params &params, const std::vector<PublicKey> &publicKeys,
+    bool verifyDistribution(const Params &params, const NTL::Vec<PublicKey> &publicKeys,
                             const DistributionProof &proof);
 
     DecryptionProof decryptShare(const Params &params, const PublicKey &publicKey,
@@ -115,7 +116,7 @@ namespace NewPVSSScheme::PVSSType1 {
     bool verifyDecryption(const Params &params, const PublicKey &publicKey,
                           const Cipher &encryptedShare, const DecryptionProof &proof);
 
-    NTL::ZZ reconstruct(const Params &params, const std::vector<NTL::ZZ> &decryptedShares);
+    NTL::ZZ reconstruct(const Params &params, const NTL::Vec<NTL::ZZ> &decryptedShares);
 }
 
 #endif //PVSSSCHEMETYPE1_HPP
