@@ -28,6 +28,8 @@
 #include "NTL/ZZX.h"
 
 namespace NewPVSSScheme::PVSSType1 {
+    typedef NTL::Mat<NTL::ZZX> mat_ZZX;
+
     struct Params {
         long numberOfParties;
         long threshold;
@@ -40,7 +42,7 @@ namespace NewPVSSScheme::PVSSType1 {
         long w;
         long o;
         NTL::vec_ZZ_pE v;
-        NTL::vec_ZZ_pE h;
+        NTL::vec_ZZX h;
         NTL::mat_ZZ_pE A;
         NTL::vec_ZZ_pE t;
         NTL::Mat<NTL::vec_ZZX> u;
@@ -76,6 +78,7 @@ namespace NewPVSSScheme::PVSSType1 {
 
     struct OpeningProof {
         NTL::vec_ZZX output;
+        NTL::vec_ZZX pi;
     };
 
     struct DistributionProof {
@@ -88,14 +91,27 @@ namespace NewPVSSScheme::PVSSType1 {
         NTL::ZZ decryptedShare;
     };
 
-    NTL::vec_ZZX operator*(const NTL::Mat<NTL::ZZX> &A, const NTL::vec_ZZX &b);
+    inline NTL::mat_ZZ_pE to_mat_ZZ_pE(const mat_ZZX &A) {
+        return NTL::conv<NTL::mat_ZZ_pE, NTL::Mat<
+            NTL::ZZ_pX> >(NTL::conv<NTL::Mat<NTL::ZZ_pX>, NTL::Mat<NTL::ZZX> >(A));
+    }
+
+    inline NTL::vec_ZZ_pE to_vec_ZZ_pE(const NTL::vec_ZZX &a) {
+        return NTL::conv<NTL::vec_ZZ_pE, NTL::vec_ZZ_pX>(NTL::conv<NTL::vec_ZZ_pX, NTL::vec_ZZX>(a));
+    }
+
+    NTL::vec_ZZX operator+(const NTL::vec_ZZX &a, const NTL::vec_ZZX &b);
+
+    NTL::vec_ZZX operator*(const NTL::vec_ZZX &a, const NTL::ZZX &b);
+
+    NTL::vec_ZZX operator*(const mat_ZZX &A, const NTL::vec_ZZX &b);
 
     NTL::vec_ZZ g_inverse(const NTL::ZZ &u, const NTL::ZZ &q);
 
-    void _generateTrapdoor(NTL::mat_ZZ_pE &A, NTL::Mat<NTL::ZZX> &trapdoor, long n, long m,
+    void _generateTrapdoor(NTL::mat_ZZ_pE &A, mat_ZZX &trapdoor, long n, long m,
                            const NTL::ZZ &q, const NTL::ZZ_pX &f, const NTL::ZZ &bound);
 
-    void _preSample(NTL::vec_ZZX &x, const NTL::Mat<NTL::ZZX> &trapdoor, const NTL::mat_ZZ_pE &A,
+    void _preSample(NTL::vec_ZZX &x, const mat_ZZX &trapdoor, const NTL::mat_ZZ_pE &A,
                     const NTL::vec_ZZ_pE &b, const NTL::ZZ &q, const NTL::ZZ_pX &f, const NTL::ZZ &bound);
 
     Params setup(long securityParameter, long numberOfParties, long threshold);
@@ -116,7 +132,7 @@ namespace NewPVSSScheme::PVSSType1 {
     bool verifyDecryption(const Params &params, const PublicKey &publicKey,
                           const Cipher &encryptedShare, const DecryptionProof &proof);
 
-    NTL::ZZ reconstruct(const Params &params, const NTL::Vec<NTL::ZZ> &decryptedShares);
+    NTL::ZZ reconstruct(const Params &params, const NTL::vec_ZZ &decryptedShares);
 }
 
 #endif //PVSSSCHEMETYPE1_HPP

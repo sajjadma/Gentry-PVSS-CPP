@@ -30,6 +30,7 @@
 #include <chrono>
 #include <my_implementation.hpp>
 #include <pvss_framework.hpp>
+#include <pvssSchemeType1.hpp>
 #include <string>
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -42,11 +43,57 @@ using namespace std;
 using namespace ALGEBRA;
 using namespace REGEVENC;
 
-int main(int argc, char** argv) {
-    // std::cout << "- Found GMP version "<<__GNU_MP__ <<std::endl;
+int main(int argc, char **argv) {
+    auto params1 = NewPVSSScheme::PVSSType1::setup(8, 4, 2);
+    NTL::Vec<NewPVSSScheme::PVSSType1::PublicKey> publicKeys;
+    NTL::Vec<NewPVSSScheme::PVSSType1::KeyPair> keys;
+    NTL::vec_ZZ decryptions;
+    publicKeys.SetLength(4);
+    keys.SetLength(4);
+    decryptions.SetLength(4);
+    for (long i = 0; i < 4; i++) {
+        keys[i] = generateKey(params1, i);
+        publicKeys[i] = keys[i].publicKey;
+    }
+
+    auto dist = distribute(params1, publicKeys, NTL::to_ZZ(6));
+
+    cout << verifyDistribution(params1, publicKeys, dist) << endl;
+
+    for (long i = 0; i < 4; i++) {
+        decryptions[i] = decryptShare(params1, publicKeys[i], keys[i].privateKey, dist.encryptedShares[i]).
+                decryptedShare;
+    }
+
+    cout << reconstruct(params1, decryptions) << endl;
+
+    return 0;
+
+
+    NTL::ZZ prime = NTL::to_ZZ("27742317777372353535851937790883648493");
+    NTL::ZZ bound = NTL::power2_ZZ(8);
+    NTL::ZZ_p::init(prime);
+    NTL::ZZ_pX f;
+    SetCoeff(f, 1 << 8);
+    SetCoeff(f, 0);
+    NTL::ZZ_pE::init(f);
+    NTL::mat_ZZ_pE A;
+    NTL::Mat<NTL::ZZX> td;
+    NewPVSSScheme::PVSSType1::_generateTrapdoor(A, td, 2, 4 * NumBits(prime), prime, f, bound);
+    NTL::vec_ZZ_pE b;
+    NTL::vec_ZZX x;
+    b.SetLength(2);
+    b[0] = NTL::to_ZZ_pE(1);
+    b[1] = NTL::to_ZZ_pE(1);
+    NewPVSSScheme::PVSSType1::_preSample(x, td, A, b, prime, f, bound);
+    cout << x << endl << A * NewPVSSScheme::PVSSType1::to_vec_ZZ_pE(x);
+
+    return 0;
+
+
     // MyVectorCommitment::VectorCommitmentType1 vc;
     // MyFramework::VC::Params *vcParams = new MyVectorCommitment::VectorCommitmentType1::MyParams();
-    // NTL::ZZ prime = NTL::conv<NTL::ZZ>("27742317777372353535851937790883648493");
+    // NTL::ZZ prime = NTL::to_ZZ("27742317777372353535851937790883648493");
     // NTL::ZZ bound = NTL::power2_ZZ(8);
     // vc.setup(vcParams, 1, 2, 4, 8, prime, bound, prime);
 
@@ -62,7 +109,7 @@ int main(int argc, char** argv) {
     MyFramework::Params params;
     params.encryptionParams = new MyEncryption::EncryptionType1::MyParams();
     params.vcParams = new MyVectorCommitment::VectorCommitmentType2::MyParams();
-    pvss.setup(params, 1, n, n/2 + 1);
+    pvss.setup(params, 1, n, n / 2 + 1);
 
 
     auto start1 = chrono::steady_clock::now();
@@ -82,7 +129,7 @@ int main(int argc, char** argv) {
     auto ticks1 = chrono::duration_cast<chrono::milliseconds>(end1 - start1).count();
     cout << "PVSS KeyGen All ends. time: " << ticks1 << "ms" << endl;
 
-    cout << "verifyKey: " << pvss.verifyKey(params, keyPair[n-1].publicKey, keyPair[n-1].proof) << endl;
+    cout << "verifyKey: " << pvss.verifyKey(params, keyPair[n - 1].publicKey, keyPair[n - 1].proof) << endl;
 
     MyFramework::DistributionProof proof;
     proof.commitment = new MyVectorCommitment::VectorCommitmentType2::MyCommitment();
@@ -91,6 +138,8 @@ int main(int argc, char** argv) {
 
     cout << "verifyDistribution: " << pvss.verifyDistribution(params, pks, proof) << endl;
 
+    start1 = chrono::steady_clock::now();
+    cout << "PVSS Dec All starts" << endl;
 
     start1 = chrono::steady_clock::now();
     cout << "PVSS Dec All starts" << endl;
@@ -99,7 +148,7 @@ int main(int argc, char** argv) {
     decrypt.proof = new MyEncryption::EncryptionType1::MyDecryptionProof();
     vector<NTL::ZZ> sh;
     for (int i = 0; i < n; i++) {
-        pvss.decryptShare(decrypt,params,keyPair[i].publicKey,keyPair[i].privateKey,proof.encryptedShares[i]);
+        pvss.decryptShare(decrypt, params, keyPair[i].publicKey, keyPair[i].privateKey, proof.encryptedShares[i]);
         sh.push_back(decrypt.decryptedShare);
     }
 
@@ -107,7 +156,8 @@ int main(int argc, char** argv) {
     ticks1 = chrono::duration_cast<chrono::milliseconds>(end1 - start1).count();
     cout << "PVSS Dec All ends. time: " << ticks1 << "ms" << endl;
 
-    cout << "verifyDecryption: " << pvss.verifyDecryption(params, pks[n-1], proof.encryptedShares[n-1], decrypt) << endl;
+    cout << "verifyDecryption: " << pvss.verifyDecryption(params, pks[n - 1], proof.encryptedShares[n - 1], decrypt) <<
+            endl;
 
 
     pvss.reconstruct(decrypt.decryptedShare, params, sh);
@@ -124,6 +174,9 @@ int main(int argc, char** argv) {
 
 
     return 0;
+
+
+    // std::cout << " - Found GMP version "<<__GNU_MP__ <<std::endl;
     // std::cout << "- Found NTL version "<<NTL_VERSION <<std::endl;
     // std::cout << "- Found Sodium version "<<SODIUM_VERSION_STRING<<std::endl;
 
