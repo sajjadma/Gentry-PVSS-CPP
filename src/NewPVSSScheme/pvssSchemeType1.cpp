@@ -41,20 +41,20 @@ namespace NewPVSSScheme::PVSSType1 {
         return x;
     }
 
-    NTL::vec_ZZX operator*(const NTL::vec_ZZX &a, const NTL::ZZX &b) {
+    NTL::vec_ZZX MulMod(const NTL::vec_ZZX &a, const NTL::ZZX &b, const NTL::ZZX &f) {
         const long n = a.length();
 
         NTL::vec_ZZX x;
         x.SetLength(n);
 
         for (long i = 0; i < n; i++) {
-            mul(x[i], a[i], b);
+            MulMod(x[i], a[i], b, f);
         }
 
         return x;
     }
 
-    NTL::vec_ZZX operator*(const mat_ZZX &A, const NTL::vec_ZZX &b) {
+    NTL::vec_ZZX MulMod(const mat_ZZX &A, const NTL::vec_ZZX &b, const NTL::ZZX &f) {
         const long n = A.NumRows();
         const long l = A.NumCols();
 
@@ -68,7 +68,7 @@ namespace NewPVSSScheme::PVSSType1 {
         for (long i = 1; i <= n; i++) {
             clear(acc);
             for (long k = 1; k <= l; k++) {
-                mul(tmp, A(i, k), b(k));
+                MulMod(tmp, A(i, k), b(k), f);
                 add(acc, acc, tmp);
             }
             conv(x(i), acc);
@@ -193,7 +193,7 @@ namespace NewPVSSScheme::PVSSType1 {
             }
         }
 
-        x = trapdoor * y;
+        x = MulMod(trapdoor, y, to_ZZX(f));
         x.append(y);
     }
 
@@ -245,17 +245,13 @@ namespace NewPVSSScheme::PVSSType1 {
             for (long j = 0; j < 5/*TODO:params.w*/; j++) {
                 //TODO:if (i == j) continue;
 
-                _preSample(params.u[i][j], td, params.A, params.v[i] / params.v[j] * params.t, params.q,
+                _preSample(params.u[i][j], td, params.A, (params.v[i] / params.v[j]) * params.t, params.q,
                            params.f, params.bound);
             }
         }
 
-        params.h.SetLength(params.o);
-        for (long i = 0; i < params.o; i++) {
-            for (long j = 0; j < params.k; j++) {
-                SetCoeff(params.h[i], j, RandomBnd(params.p));
-            }
-        }
+        NTL::ZZ_p::init(params.p);
+        random(params.h, params.o);
 
         return params;
     }
@@ -272,7 +268,7 @@ namespace NewPVSSScheme::PVSSType1 {
             SetCoeff(e, i, RandomBnd(params.bound));
         }
 
-        key.publicKey.b = key.privateKey.a * key.privateKey.s + e;
+        key.publicKey.b = MulMod(key.privateKey.a, key.privateKey.s, to_ZZX(params.f)) + e;
 
         return key;
     }
@@ -333,8 +329,8 @@ namespace NewPVSSScheme::PVSSType1 {
                 RandomBnd(tmp, params.bound);
                 SetCoeff(r, j, tmp);
                 input[inputIndex] = to_ZZX(tmp);
-                M.put(outputIndex + 1, inputIndex, publicKeys[i].a * tmpX);
-                M.put(outputIndex + 2, inputIndex, publicKeys[i].b * tmpX);
+                M.put(outputIndex + 1, inputIndex, MulMod(publicKeys[i].a, tmpX, to_ZZX(params.f)));
+                M.put(outputIndex + 2, inputIndex, MulMod(publicKeys[i].b, tmpX, to_ZZX(params.f)));
                 inputIndex++;
 
                 RandomBnd(tmp, params.bound);
@@ -350,8 +346,8 @@ namespace NewPVSSScheme::PVSSType1 {
                 inputIndex++;
             }
 
-            proof.encryptedShares[i].u = publicKeys[i].a * r + e1;
-            proof.encryptedShares[i].v = publicKeys[i].b * r + m * p2 + e2;
+            proof.encryptedShares[i].u = MulMod(publicKeys[i].a, r, to_ZZX(params.f)) + e1;
+            proof.encryptedShares[i].v = MulMod(publicKeys[i].b, r, to_ZZX(params.f)) + m * p2 + e2;
             outputIndex += 3;
         }
 
@@ -364,15 +360,18 @@ namespace NewPVSSScheme::PVSSType1 {
             u[i].SetLength(params.A.NumCols(), NTL::ZZX::zero());
             for (long j = 0; j < params.w; j++) {
                 if (j == i) continue;
-                u[i] = u[i] + params.u[j % 5 /*TODO:*/][i % 5/*TODO:*/] * input[j];
+                u[i] = u[i] + MulMod(params.u[j % 5 /*TODO:*/][i % 5/*TODO:*/], input[j], to_ZZX(params.f));
             }
         }
 
-        proof.proof.output = M * input;
+        proof.proof.output = MulMod(M, input, to_ZZX(params.f));
         proof.proof.pi.SetLength(params.A.NumCols(), NTL::ZZX::zero());
         for (long i = 0; i < params.o; i++) {
             for (long j = 0; j < params.w; j++) {
-                proof.proof.pi = proof.proof.pi + u[j] * params.h[i] * M[i][j];
+                proof.proof.pi = proof.proof.pi +
+                                 MulMod(u[j],
+                                        MulMod(to_ZZX(rep(params.h[i])), M[i][j], to_ZZX(params.f)),
+                                        to_ZZX(params.f));
             }
         }
 
@@ -396,14 +395,17 @@ namespace NewPVSSScheme::PVSSType1 {
         for (long i = 0; i < params.numberOfParties; i++) {
             if (!IsZero(proof.proof.output[outputIndex])) {
                 cout << "Wrong output dist verify: (" << outputIndex << ") " << proof.proof.output[outputIndex] << endl;
+                return false;
             }
             if (proof.proof.output[outputIndex + 1] != proof.encryptedShares[i].u) {
                 cout << "Wrong output dist verify: (" << outputIndex + 1 << ") " << proof.proof.output[outputIndex + 1]
                         << endl;
+                return false;
             }
             if (proof.proof.output[outputIndex + 2] != proof.encryptedShares[i].v) {
                 cout << "Wrong output dist verify: (" << outputIndex + 2 << ") " << proof.proof.output[outputIndex + 2]
                         << endl;
+                return false;
             }
 
             set(tmp);
@@ -420,8 +422,8 @@ namespace NewPVSSScheme::PVSSType1 {
                 M.put(outputIndex + 2, inputIndex, tmpX * p2);
                 inputIndex++;
 
-                M.put(outputIndex + 1, inputIndex, publicKeys[i].a * tmpX);
-                M.put(outputIndex + 2, inputIndex, publicKeys[i].b * tmpX);
+                M.put(outputIndex + 1, inputIndex, MulMod(publicKeys[i].a, tmpX, to_ZZX(params.f)));
+                M.put(outputIndex + 2, inputIndex, MulMod(publicKeys[i].b, tmpX, to_ZZX(params.f)));
                 inputIndex++;
 
                 M.put(outputIndex + 1, inputIndex, tmpX);
@@ -434,19 +436,19 @@ namespace NewPVSSScheme::PVSSType1 {
             outputIndex += 3;
         }
 
-        NTL::ZZ_pE x;
+        NTL::ZZ_pE x = NTL::ZZ_pE::zero();
         for (long i = 0; i < params.o; i++) {
             for (long j = 0; j < params.w; j++) {
-                x += to_ZZ_pE(to_ZZ_pX(params.h[i])) * (
-                    to_ZZ_pE(to_ZZ_pX(M[i][j])) * proof.commitment.c / params.v[j % 5/*TODO:*/] -
-                    to_ZZ_pE(to_ZZ_pX(proof.proof.output[i])));
+                x += params.h[i] * (to_ZZ_pE(to_ZZ_pX(M[i][j])) * proof.commitment.c / params.v[j % 5/*TODO:*/]);
             }
+            x -= params.h[i] * to_ZZ_pE(to_ZZ_pX(proof.proof.output[i]));
         }
 
         const auto a = params.A * to_vec_ZZ_pE(proof.proof.pi);
         const auto b = x * params.t;
         if (a != b) {
             cout << "Au != rhs in dist verify. a = " << a << ", b = " << b << endl;
+            return false;
         }
 
         return true;
@@ -457,7 +459,7 @@ namespace NewPVSSScheme::PVSSType1 {
         DecryptionProof proof;
         clear(proof.decryptedShare);
 
-        NTL::ZZX m = encryptedShare.v - privateKey.s * encryptedShare.u;
+        NTL::ZZX m = encryptedShare.v - MulMod(privateKey.s, encryptedShare.u, to_ZZX(params.f));
         for (long i = 0; i < params.k; i++) {
             if (coeff(m, i) > (params.p / 4)) {
                 SetBit(proof.decryptedShare, i);

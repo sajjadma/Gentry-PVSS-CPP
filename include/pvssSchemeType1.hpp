@@ -42,7 +42,7 @@ namespace NewPVSSScheme::PVSSType1 {
         long w;
         long o;
         NTL::vec_ZZ_pE v;
-        NTL::vec_ZZX h;
+        NTL::vec_ZZ_pE h;
         NTL::mat_ZZ_pE A;
         NTL::vec_ZZ_pE t;
         NTL::Mat<NTL::vec_ZZX> u;
@@ -102,9 +102,9 @@ namespace NewPVSSScheme::PVSSType1 {
 
     NTL::vec_ZZX operator+(const NTL::vec_ZZX &a, const NTL::vec_ZZX &b);
 
-    NTL::vec_ZZX operator*(const NTL::vec_ZZX &a, const NTL::ZZX &b);
+    NTL::vec_ZZX MulMod(const NTL::vec_ZZX &a, const NTL::ZZX &b, const NTL::ZZX &f);
 
-    NTL::vec_ZZX operator*(const mat_ZZX &A, const NTL::vec_ZZX &b);
+    NTL::vec_ZZX MulMod(const mat_ZZX &A, const NTL::vec_ZZX &b, const NTL::ZZX &f);
 
     NTL::vec_ZZ g_inverse(const NTL::ZZ &u, const NTL::ZZ &q);
 
